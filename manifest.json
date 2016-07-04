@@ -1,0 +1,16 @@
+{
+    "name": "GTD for Google Tasks™",
+    "version": "0.1",
+    "manifest_version": 2,
+    "description": "Enable GTD Functionality to Google Tasks",
+    "icons": {
+	"64": "gtdExt-icon-64.bmp"
+    },
+    "content_scripts": [ {
+       "js": [ "gtdExt.js" ],
+      "matches": [ "https://mail.google.com/tasks/canvas*" ],
+      "run_at": "document_end"
+    } ]
+}
+
+
