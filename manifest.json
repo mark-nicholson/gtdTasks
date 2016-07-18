@@ -9,13 +9,13 @@
     "background": {
 	"scripts": [
 	    "lib/utilities.js",
-	    "background.js"
+	    "gtdExt-engine.js"
 	],
 	"persistent": false
     },		
     "content_scripts": [ {
 	"js": [
-	    "gtdExt.js"
+	    "gtdExt-client.js"
 	],
 	"matches": [
 	    "https://mail.google.com/tasks/canvas*"
