@@ -4,6 +4,8 @@
 
     console.log("GTD: enter");
 
+    console.log("window.gapi_onload = " + window.gapi_onload);
+    
     /* wait until the table is set */
     if (iFrame == null 
         || iFrame.contentDocument == undefined
@@ -59,6 +61,13 @@
 
 	function gtdButtonClick () {
 	    console.log("GTD: button clicked!");
+	    chrome.runtime.sendMessage(
+		{appName: "gtdGtasks", update: true},
+		function(response) {
+		    console.log("click: got response: " + response.msg);
+		}
+	    );
+	    console.log("GTD: msg done");
 	}
 
 	var newButton = document.createElement("DIV");
