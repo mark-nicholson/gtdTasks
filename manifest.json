@@ -8,6 +8,7 @@
     },
     "background": {
 	"scripts": [
+	    "lib/utilities.js",
 	    "background.js"
 	],
 	"persistent": false

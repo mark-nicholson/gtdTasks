@@ -1,56 +1,43 @@
-/*var head = document.getElementsByTagName('head')[0];
-var script = document.createElement('script');
-script.type = 'text/javascript';
-script.src = "https://apis.google.com/js/client.js";
-head.appendChild(script);
-*/
+/*
+ * gtdGTasks main engine.
+ *   This provides the JS interface to the tasks. It will perform the 
+ *  task list updating and manage the callbacks.
+ */
 
+/* make sure we can track our info */
 var manifest = chrome.runtime.getManifest();
 console.log("BG: " + manifest.name);
 console.log("BG: " + manifest.version);
 
-//oauth2 auth
-chrome.identity.getAuthToken(
-    {'interactive': true},
-    function() {
-	//load Google's javascript client libraries
-	window.gapi_onload = authorize;
-	loadScript('https://apis.google.com/js/client.js');
-	//loadScript('https://apis.google.com/js/api.js');
-    }
-);
-
-function loadScript(url){
-    var request = new XMLHttpRequest();
-
-    request.onreadystatechange = function(){
-	if(request.readyState !== 4) {
-	    return;
-	}
-	
-	if(request.status !== 200) {
-	    return;
-	}
-	
-	eval(request.responseText);
-	};
-    
-    request.open('GET', url);
-    request.send();
-}
-
+/**
+ * authorize the GAPI using Chrome's built-in OAuth2 mechanisms.
+ */
 function authorize() {
-    gapi.auth.authorize(
-	{
-	    client_id: '276059749769-k2cb4aolh55lo9ujb7e8r49prh45jek6.apps.googleusercontent.com',
-	    immediate: true,
-	    scope: 'https://www.googleapis.com/auth/tasks'
-	},
-	function(){
-	    gapi.client.load('tasks', 'v1', tasksAPILoaded);
+    var token = "";
+
+    chrome.identity.getAuthToken(
+	{'interactive': true},
+	function(token) {
+	    // apply the token from chrome
+	    gapi.auth.setToken( { access_token: token } );
 	}
     );
+    
+    // kick things off
+    gapi.client.load('tasks', 'v1', tasksAPILoaded);
 }
+
+
+// Bootstrap
+window.gapi_onload = authorize;
+
+// theoretically should use 'api.js', but we get a load error...
+loadScript('https://apis.google.com/js/client.js', null);
+
+
+/******************************************************************************
+ *   Tasks Interface
+ ******************************************************************************/
 
 var g_taskLists = null;
 
@@ -80,12 +67,6 @@ function tasksAPILoaded() {
 
     request.execute( logTaskLists );
 }
-
-
-/*
-window.gapi_onload = function () {
-    console.log('gapi loaded.', gapi.auth, gapi.client);
-}*/
 
 var msgCount = 0;
 
