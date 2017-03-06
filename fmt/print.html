@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" ="text/css" href="print.css"></link>
+</head>
+
+<body>
+    <button type="button" onclick="showPrintPrefs()">Show</button>
+    <button type="button" onclick="checkSizes()">Sizes</button>
+    <div id='printArea' class='multiContainer'></div>
+</body>
+    <script src="print.js"></script>
+    <script src="tdata.js"></script>
+
+<footer class="gtd-footer">
+    <p id=date></p>
+</footer>
+<script type="text/javascript">
+    var el = document.getElementById('date');
+    var cdate = Date();
+    el.innerHTML = cdate;
+</script>
+
+<!-- Modal Print Preferences Dialog -->
+<div id="gtdPrintModal" class="gtd-print-modal">
+
+  <!-- Modal content -->
+  <div class="gtd-print-modal-content">
+    <span class="gtd-print-modal-close">&times;</span>
+    <h1>Print Preferences</h1>
+    <p>Select Lists to Print...</p>
+      <div id="gtdPrintModalTaskLists" onshow="testOnShow()"></div>
+      
+      <div>
+      <input type="checkbox" id='gtdPrintModalIncludeDone' onclick="updateIncludeDone()">Include Completed Tasks</input>
+      </div>
+    <div>
+    <button type="button" onclick="okPrintPrefs()">Ok</button>
+    <button type="button" onclick="hidePrintPrefs()">Cancel</button>
+    </div>
+  </div>
+
+</div>
+<script>
+    /* Script support for launching the dialog */
+    var printDialog = {
+        modal:  document.getElementById('gtdPrintModal'),
+        span:   document.getElementsByClassName(
+            "gtd-print-modal-close")[0],
+        woc:    null
+    };
+    var printDialogPrefs = {
+        taskLists: [],
+        includeCompleted: false
+    };
+    function updateIncludeDone() {
+        printDialogPrefs.includeCompleted = !printDialogPrefs.includeCompleted;
+        console.log("updateIncludeDone: " + printDialogPrefs.includeCompleted);
+
+    }
+    function showPrintPrefs() {
+        printDialogPrefs.taskLists = [];
+        printDialogPrefs.includeCompleted = false;
+        
+        /* preload the list */
+        taskListsSelectionDiv('gtdPrintModalTaskLists');
+        
+        /* configure handlers */
+        printDialog.woc = window.onclick;
+        printDialog.span.onclick = hidePrintPrefs;
+        
+        /* make it appear */
+        printDialog.modal.style.display = 'block';
+    };
+    function hidePrintPrefs(event) {
+        window.onclick = printDialog.woc;
+        printDialog.modal.style.display = 'none';
+    };
+    function okPrintPrefs(event) {
+        console.log("Receive OK from PrintPrefs");
+        hidePrintPrefs(event);
+        
+        renderTasks(printDialogPrefs);
+    }
+    window.onclick = function(event) {
+        if (event.target == printDialog.modal) {
+            //modal.style.display = "none";
+            hidePrintPrefs(event);
+        }
+    }
+</script>
+
+</html>
