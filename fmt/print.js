@@ -227,11 +227,11 @@ function dupTasksList() {
     return rl;
 }
 
-function getBestTL(taskLists, size) {
+function getBestTL(taskListDivs, size) {
     var i, bestIdx = -1, bestSize = 0;
     var n = 0;
-    for (i in taskLists) {
-        n = tData['tasks'][taskLists[i].id].length;
+    for (i in taskListDivs) {
+        n = taskListDivs[i].clientHeight;
         console.log("[" + i +"] bIdx: " + bestIdx + " n:" + n + " bS:" + bestSize);
         if (n <= size && n > bestSize) {
             bestIdx = i;
@@ -244,7 +244,7 @@ function getBestTL(taskLists, size) {
         return null;
     
     /* remove 'best' from the list and return it */
-    return taskLists.splice(bestIdx, 1)[0];
+    return taskListDivs.splice(bestIdx, 1)[0];
 }
 
 function fillDivColumn(taskLists, columnTaskLists) {
@@ -252,22 +252,19 @@ function fillDivColumn(taskLists, columnTaskLists) {
         columnTaskLists = [];
     
     var used = 0;
-    var tMax = 29;
+    var tMax = window.innerHeight;
     var i;
     
     /* current count */
     for (i in columnTaskLists)
-        used += tData['tasks'][columnTaskLists[i]].length;
+        used += columnTaskLists[i].clientHeight;
     
     while (used < tMax) {
-        var tl = getBestTL(
-            taskLists, 
-            tMax-(used+2*(columnTaskLists.length + 1))
-        );
+        var tl = getBestTL(taskLists, tMax-used);
         if (!tl)
             break;  /* nothing fits */
         columnTaskLists.push(tl);
-        used += tData['tasks'][tl.id].length;
+        used += tl.clientHeight;
         console.log("cd[" + columnTaskLists.length +"]  used:" + used);
     }
     
@@ -284,82 +281,93 @@ function renderTasks(prefs) {
     console.log("do_it: begin");
     var printArea = document.getElementById('printArea');
     
+    /* always have next-tasks first */
+    taskLists = prefs.taskLists; //dupTasksList();
 
-    if (fit == 'linear') {
-        /* always have next-tasks first */
-        taskLists = prefs.taskLists; //dupTasksList();
-        
-        for (ti in taskLists){
-            console.log("got: " + taskLists[ti].title);
-        }
-        
-        ti = taskLists.findIndex(function(element) {
-            return element.title == 'Next-Tasks';
-        })
-        if (ti >= 0)
-            nextTL = taskLists.splice(ti,1)[0];
-
-        /* arrange the block shortest to tallest */
-        taskLists.sort(function(a, b){
-            var lenA = tData['tasks'][a.id].length;
-            var lenB = tData['tasks'][b.id].length;
-            if(lenA < lenB) return -1;
-            if(lenA > lenB) return 1;
-            return 0;
-        });
-        
-        /*
-         * Clear out any pre-existing divs...
-         */
-        while (printArea.childElementCount > 0)
-            printArea.removeChild(printArea.firstChild);
-
-        /* setup the next task div */
-        if (nextTL) {
-            nextTLDiv = taskListDiv(nextTL);
-            printArea.appendChild(nextTLDiv);
-        }
-
-        /* fill in the rest of the divs */
-        for (ti in taskLists) {
-            tl = taskLists[ti];
-            item = taskListDiv(tl);
-            printArea.appendChild(item);
-        }
+    for (ti in taskLists){
+        console.log("got: " + taskLists[ti].title);
     }
-    else {
-        console.log("best-fit algorithm");
-        taskLists = dupTasksList();
-        nextTL = taskLists.shift();
 
-        var divColumn, colDiv, x;
-        var columnTaskLists = [];
-        
-        while (taskLists.length > 0) {
-            columnTaskLists = fillDivColumn(taskLists, []);
-            if (nextTL) {
-                columnTaskLists.unshift(nextTL);
-                nextTL = null;
-            }
-            
-            if (columnTaskLists.length == 0) {
-                console.log("empty divcolumn")
-                break;
-            }
-            
-            colDiv = document.createElement('div');
-            for (x in columnTaskLists) {
-                colDiv.appendChild( taskListDiv(columnTaskLists[x]) );
-            }
-            printArea.appendChild(colDiv);
+    ti = taskLists.findIndex(function(element) {
+        return element.title == 'Next-Tasks';
+    })
+    if (ti >= 0)
+        nextTL = taskLists.splice(ti,1)[0];
+
+    /* arrange the block shortest to tallest */
+    taskLists.sort(function(a, b){
+        var lenA = tData['tasks'][a.id].length;
+        var lenB = tData['tasks'][b.id].length;
+        if(lenA < lenB) return -1;
+        if(lenA > lenB) return 1;
+        return 0;
+    });
+
+    /*
+     * Clear out any pre-existing divs...
+     */
+    while (printArea.childElementCount > 0)
+        printArea.removeChild(printArea.firstChild);
+
+    /* setup the next task div */
+    if (nextTL) {
+        nextTLDiv = taskListDiv(nextTL);
+        printArea.appendChild(nextTLDiv);
+    }
+
+    /* fill in the rest of the divs */
+    for (ti in taskLists) {
+        tl = taskLists[ti];
+        item = taskListDiv(tl);
+        printArea.appendChild(item);
+    }
+    
+    //printArea.style.display = 'none';
+    //printArea.style.display = 'block';
+    //return;
+    /*
+     * Now that the divs are rendered, adjust positioning
+     */
+    console.log("best-fit algorithm");
+    taskLists = [];
+    var idx;
+
+    console.log("pa-count: " + printArea.childElementCount);
+    for (idx = 0; idx < printArea.childElementCount; idx++) {
+        console.log("A[" + idx + "] ch="+printArea.childNodes[idx].clientHeight);
+        taskLists.push(printArea.childNodes[idx]);
+    }
+    
+    nextTL = taskLists.shift();
+
+    for (idx in taskLists) {
+        console.log("B[" + idx + "] ch="+taskLists[idx].clientHeight);
+    }
+    
+    var divColumn, colDiv, x;
+    var columnTaskLists = [nextTL];
+    
+    while (taskLists.length > 0) {
+        columnTaskLists = fillDivColumn(taskLists, columnTaskLists);
+
+        if (columnTaskLists.length == 0) {
+            console.log("empty divcolumn")
+            break;
         }
-        
-        /* fill in the rest of the divs */
-        for (ti in taskLists) {
-            tl = taskLists[ti];
-            item = taskListDiv(tl);
-            printArea.appendChild(item);
+        console.log("ctl.length: " + columnTaskLists.length);
+        colDiv = document.createElement('div');
+        colDiv.classList.add('gtd-left');
+        for (x in columnTaskLists) {
+            colDiv.appendChild( columnTaskLists[x] );
         }
+        printArea.appendChild(colDiv);
+        columnTaskLists = [];
+    }
+
+    /* fill in the rest of the divs */
+    for (ti = 0; ti < taskLists.length; ti++) {
+        tl = taskLists[ti];
+        printArea.appendChild(tl);
     }
 
 }
@@ -367,19 +375,19 @@ function renderTasks(prefs) {
 
 function checkSizes() {
     var printArea = document.getElementById('printArea');
-    console.log("printArea.clientHeight: " + printArea.clientHeight);
-    console.log("printArea.clientWidth:  " + printArea.clientWidth);
-    console.log("printArea.height:       " + printArea.height);
-    console.log("printArea.width:        " + printArea.width);
+    console.log("printArea.client: %sx%s", 
+                printArea.clientWidth, printArea.clientHeight);
+    console.log("printArea:        %sx%s",
+                printArea.width, printArea.height);
     
-    console.log("window.innerHeight:     " + window.innerHeight);
-    console.log("window.innerWidth:      " + window.innerWidth);
+    console.log("window.inner:     %sx%s",
+                window.innerWidth, window.innerHeight);
     
     var child, idx;
     
-    for (idx in printArea.children) {
+    for (idx = 0; idx < printArea.childElementCount; idx++) {
         child = printArea.children[idx];
-        console.log("child["+idx+"] Height: " + child.clientHeight);
-        console.log("child["+idx+"] Width:  " + child.clientWidth);
+        console.log("child[%s] %sx%s", idx, 
+                    child.clientWidth, child.clientHeight);
     }
 }
