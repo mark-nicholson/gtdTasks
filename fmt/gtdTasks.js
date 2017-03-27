@@ -201,7 +201,7 @@ function renderTasks(prefs) {
         }
     
         col = document.createElement('div');
-        col.classList.add('col-md-4');
+        col.classList.add('col-xs-4');
         col.appendChild(panels[pi]);
         row.appendChild(col);
     }
