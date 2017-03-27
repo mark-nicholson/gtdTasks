@@ -2,16 +2,28 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.css">
+    <link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.css">
+
+    <!--
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="data:text/css;charset=utf-8," rel=stylesheet data-href=node_modules/bootstrap/dist/css/bootstrap-theme.min.css id=bs-theme-stylesheet>
+    <link rel="stylesheet" href="node_modules/font-awesome/css/font-awesome.min.css" integrity="sha256-NuCn4IvuZXdBaFKJOAcsU2Q3ZpwbdFisd5dux4jkQ5w" crossorigin="anonymous">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    -->
     <link rel="stylesheet" ="text/css" href="print.css"></link>
 </head>
 
 <body>
-    <button type="button" onclick="showPrintPrefs()">Show</button>
-    <button type="button" onclick="checkSizes()">Sizes</button>
-    <div id='printArea' class='multiContainer'></div>
+    <!-- <button type="button" onclick="showPrintPrefs()">Show</button> -->
+    <button type="button" class="btn btn-info" data-toggle="modal" data-target="#gtdPrintModal">Show</button>
+    <button type="button" class="btn btn-info" onclick="checkSizes()">Sizes</button>
+    <div id='printArea' class='container'></div>
 </body>
-    <script src="print.js"></script>
-    <script src="tdata.js"></script>
+
+<script src="print.js"></script>
+<script src="tdata.js"></script>
 
 <footer class="gtd-footer">
     <p id=date></p>
@@ -22,73 +34,65 @@
     el.innerHTML = cdate;
 </script>
 
-<!-- Modal Print Preferences Dialog -->
-<div id="gtdPrintModal" class="gtd-print-modal">
+<script src="node_modules/jquery/dist/jquery.js"></script>
+<script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
 
-  <!-- Modal content -->
-  <div class="gtd-print-modal-content">
-    <span class="gtd-print-modal-close">&times;</span>
-    <h1>Print Preferences</h1>
-    <p>Select Lists to Print...</p>
-      <div id="gtdPrintModalTaskLists" onshow="testOnShow()"></div>
-      
-      <div>
-      <input type="checkbox" id='gtdPrintModalIncludeDone' onclick="updateIncludeDone()">Include Completed Tasks</input>
+<!--
+<script src="node_modules/bootstrap/dist/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+-->
+
+<!-- Modal Dialogs -->
+
+<!-- Print Selector -->
+<div id="gtdPrintModal" class="modal fade gtd-modal" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Print Preferences</h4>
       </div>
-    <div>
-    <button type="button" onclick="okPrintPrefs()">Ok</button>
-    <button type="button" onclick="hidePrintPrefs()">Cancel</button>
+      <div class="modal-body">
+        <p>Select Lists to Print...</p>
+        <ul class="list-group" id="gtdPrintModalTaskLists"></ul>
+        <input type="checkbox" id="gtdPrintModalIncludeDone">
+          Include Completed Tasks
+        </input>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="gtdPrintModalOk()">Ok</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" >Cancel</button>
+      </div>
     </div>
+
   </div>
+  <script type="text/javascript">
+    $('#gtdPrintModal').on('show.bs.modal', gtdPrintModalShow);
+    function gtdPrintModalShow() {
+        taskListsSelectionList('gtdPrintModalTaskLists');
+    }
+    function gtdPrintModalOk() {
+        var ul, idx;
+        var cb = document.getElementById("gtdPrintModalIncludeDone");
+        var prefs = {
+            taskLists: [],
+            includeCompleted: cb.checked
+        };
 
+        ul = $("#gtdPrintModalTaskLists");
+        for (idx in ul.children()) {
+            cb = ul.children().get(idx).firstChild;
+            if (!cb)
+                continue;
+            console.log(cb.id);
+            if (cb.checked)
+                prefs.taskLists.push(taskListByID(cb.id));
+        };
+        
+        renderTasks(prefs);
+    }
+  </script>
 </div>
-<script>
-    /* Script support for launching the dialog */
-    var printDialog = {
-        modal:  document.getElementById('gtdPrintModal'),
-        span:   document.getElementsByClassName(
-            "gtd-print-modal-close")[0],
-        woc:    null
-    };
-    var printDialogPrefs = {
-        taskLists: [],
-        includeCompleted: false
-    };
-    function updateIncludeDone() {
-        printDialogPrefs.includeCompleted = !printDialogPrefs.includeCompleted;
-        console.log("updateIncludeDone: " + printDialogPrefs.includeCompleted);
-
-    }
-    function showPrintPrefs() {
-        printDialogPrefs.taskLists = [];
-        printDialogPrefs.includeCompleted = false;
-        
-        /* preload the list */
-        taskListsSelectionDiv('gtdPrintModalTaskLists');
-        
-        /* configure handlers */
-        printDialog.woc = window.onclick;
-        printDialog.span.onclick = hidePrintPrefs;
-        
-        /* make it appear */
-        printDialog.modal.style.display = 'block';
-    };
-    function hidePrintPrefs(event) {
-        window.onclick = printDialog.woc;
-        printDialog.modal.style.display = 'none';
-    };
-    function okPrintPrefs(event) {
-        console.log("Receive OK from PrintPrefs");
-        hidePrintPrefs(event);
-        
-        renderTasks(printDialogPrefs);
-    }
-    window.onclick = function(event) {
-        if (event.target == printDialog.modal) {
-            //modal.style.display = "none";
-            hidePrintPrefs(event);
-        }
-    }
-</script>
 
 </html>
