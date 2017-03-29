@@ -8,17 +8,24 @@
  */
 .panel-gtd {
     /* placeholder class for now */
+    margin-bottom: 10px;
 }
 
 .panel-gtd .panel-body {
     padding: 8px;
     line-height: 1.0;
 }
+.panel-gtd .list-group {
+    margin-bottom: 5px;
+}
 .panel-gtd .list-group-item {
     padding: 3px 5px;
 }
 .panel-gtd .panel-footer {
     padding: 3px 5px;    
+}
+.panel-gtd .close {
+    margin-top: -20px;
 }
 
 /*
@@ -30,6 +37,7 @@
 
 .gtd-modal .list-group-item {
     padding: 3px 5px;
+
 }
 
 .gtd-completed {
@@ -38,11 +46,15 @@
 }
 
 .gtd-checkbox {
+    margin-top: -2px;
 }
 
 .gtd-checkbox-label {
+    /*width: 275px;*/
     margin: 5px;
     white-space: pre-wrap;
+    /*word-break: normal;
+    word-wrap: normal;*/
 }
 
 .gtd-footer {
@@ -50,3 +62,43 @@
     float: bottom;
 }
 
+.gtd-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+}
+
+.task-icon {
+    display: inline-block;
+    width: 20px;
+    font-family: FontAwesome;
+    cursor: pointer;
+}
+.task-label {
+    display: inline-block;
+    width: 225px;
+}
+
+.gtd-drag {
+    float: left;
+    margin: 4px;
+}
+.gtd-edit {
+    float: right;
+    margin-top: -16px;
+}
+.gtd-info {
+    display:inline-block;
+}
+.gtd-item-box {
+}
+.gtd-task-parent-0 {
+}
+.gtd-task-parent-1 {
+    padding-left: 30px;
+}
+.gtd-task-parent-2 {
+    padding-left: 40px;
+}
+.gtd-task-parent-3 {
+    padding-left: 50px;
+}
