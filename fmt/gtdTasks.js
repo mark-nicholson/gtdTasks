@@ -86,18 +86,16 @@ function createPanel(title, footer, id) {
     var panelHeading = document.createElement('div');
     var phData = document.createElement('h3');
  
-    panel.classList.add('panel');
-    panel.classList.add('panel-primary');
-    panel.classList.add('panel-gtd');
+    panel.classList.add('panel', 'panel-primary', 'panel-gtd');
     panel.id = id;
     
     panelHeading.classList.add('panel-heading');
 
     phData.classList.add('panel-title');
     phData.innerHTML = title;
+    
     var phButton = document.createElement('button');
     phButton.type = "button";
-    //phButton.id = "delete-" + id;
     phButton.classList.add("close");
     phButton.onclick = uiDeleteTaskList;
     phButton.innerHTML = "&times;";
@@ -122,45 +120,10 @@ function createPanel(title, footer, id) {
     return { panel: panel, body: pBody, list: pList, footer: pFoot };
 }
 
-/*
- * Create a table based entry for the Task Item
- */
-function tabularTaskEntry(pItem, task, prefs) {
-        
-    var table = document.createElement('table');
-    var row = document.createElement('tr');
-    var cbCell = document.createElement('td');
-    var lCell = document.createElement('td');
-
-    table.appendChild(row);
-    row.appendChild(cbCell);
-    row.appendChild(lCell);
-
-    checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = task.id;
-    checkbox.classList.add('gtd-checkbox');
-    cbCell.appendChild(checkbox);
-
-    label = document.createElement('label');
-    label.classList.add('gtd-checkbox-label');
-    label.innerHTML = task.title;
-    lCell.appendChild(label);
-
-    /* formatting */
-    if (task.completed) {
-        checkbox.checked = true;
-        label.classList.add('gtd-completed');
-    }
-
-    return table;
-}
-
 function uiTaskEditModal() {
     var listItem = $(this).closest('li');
     var task = taskByID(listItem.attr('id'));
 
-    //var task = taskByID(this.id);
     console.log("edit task: " + this.id + "  " + task.title);
     var modal = $("#gtdTaskEditModal");
     
@@ -243,7 +206,7 @@ function uiTaskCompleted(e) {
     $(this).toggleClass('fa-check');
     
     /* track the text and rub it out */
-    listItem.find('.task-label').toggleClass('gtd-completed');
+    listItem.find('.gtd-task-label').toggleClass('gtd-completed');
 }
 
 function divTaskEntry(pItem, task, prefs) {
@@ -277,7 +240,7 @@ function divTaskEntry(pItem, task, prefs) {
     edit.onclick = uiTaskEditModal;
     
     var info = document.createElement('div');
-    info.classList.add('task-label');
+    info.classList.add('gtd-task-label');
     info.innerHTML = task.title;
 
     /* formatting */
@@ -296,61 +259,6 @@ function divTaskEntry(pItem, task, prefs) {
 
     /* return the completed item */
     return pItem;
-}
-
-function divTaskEntryOrig(pItem, task, prefs) {
-        
-    var item = document.createElement('div');
-    var drag = document.createElement('div');
-    var info = document.createElement('div');
-    var edit = document.createElement('div');
-    var checkbox, label;
-    var pd = 0;
-    var cur = task;
-    
-    /* get parent depth */
-    while (cur.hasOwnProperty('parent')) {
-        cur = taskByID(cur.parent);
-        pd++;
-    }
-    console.log("Task: " + task.title + " parentage: " + pd);
-    
-    
-    item.classList.add('gtd-item-box');
-    
-    drag.classList.add('gtd-drag', 'fa', 'fa-bars');
-    
-    edit.classList.add('gtd-edit', 'fa', 'fa-edit');
-    edit.id = task.id;
-    edit.onclick = taskEditModal;
-    
-    info.classList.add('gtd-task-info', 'gtd-task-parent-'+pd);
-    
-    checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = task.id;
-    checkbox.classList.add('gtd-checkbox');
-    info.appendChild(checkbox);
-
-    label = document.createElement('label');
-    label.setAttribute('for', task.id);
-    label.classList.add('gtd-checkbox-label');
-    label.innerHTML = task.title;
-    info.appendChild(label);
-
-    /* formatting */
-    if (task.completed) {
-        checkbox.checked = true;
-        label.classList.add('gtd-completed');
-    }
-    
-    item.appendChild(drag);
-    item.appendChild(info);
-    item.appendChild(edit);
-    
-    pItem.appendChild(item);
-
-    return item;
 }
 
 /*
@@ -387,10 +295,7 @@ function taskListPanel(taskList, prefs) {
         pItem.id = task.id;
 
         /* create the display entry for this task */
-        if (false)
-            taskEntry = tabularTaskEntry(pItem, task, prefs);
-        else
-            taskEntry = divTaskEntry(pItem, task, prefs);
+        divTaskEntry(pItem, task, prefs);
         
         /* weave it into the list */
         pComp.list.appendChild(pItem);

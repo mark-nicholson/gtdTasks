@@ -1,9 +1,4 @@
 /*
- * CSS for printing
- */
-
-
-/*
  * Hook class to extend bootstrap panels
  */
 .panel-gtd {
@@ -40,23 +35,6 @@
 
 }
 
-.gtd-completed {
-    font-style: italic;
-    text-decoration: line-through;
-}
-
-.gtd-checkbox {
-    margin-top: -2px;
-}
-
-.gtd-checkbox-label {
-    /*width: 275px;*/
-    margin: 5px;
-    white-space: pre-wrap;
-    /*word-break: normal;
-    word-wrap: normal;*/
-}
-
 .gtd-footer {
     font-style: italic;
     float: bottom;
@@ -67,38 +45,12 @@
     page-break-inside: avoid;
 }
 
-.task-icon {
-    display: inline-block;
-    width: 20px;
-    font-family: FontAwesome;
-    cursor: pointer;
-}
-.task-label {
-    display: inline-block;
-    width: 225px;
+.gtd-completed {
+    font-style: italic;
+    text-decoration: line-through;
 }
 
-.gtd-drag {
-    float: left;
-    margin: 4px;
-}
-.gtd-edit {
-    float: right;
-    margin-top: -16px;
-}
-.gtd-info {
-    display:inline-block;
-}
-.gtd-item-box {
-}
-.gtd-task-parent-0 {
-}
-.gtd-task-parent-1 {
-    padding-left: 30px;
-}
-.gtd-task-parent-2 {
-    padding-left: 40px;
-}
-.gtd-task-parent-3 {
-    padding-left: 50px;
+.gtd-task-label {
+    display: inline-block;
+    width: 225px;
 }
