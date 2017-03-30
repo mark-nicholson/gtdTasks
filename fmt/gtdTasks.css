@@ -50,7 +50,43 @@
     text-decoration: line-through;
 }
 
+.gtd-task-indent-0 { margin-left:  0px;}
+.gtd-task-indent-1 { margin-left: 10px;}
+.gtd-task-indent-2 { margin-left: 20px;}
+.gtd-task-indent-3 { margin-left: 30px;}
+.gtd-task-indent-4 { margin-left: 40px;}
+
 .gtd-task-label {
     display: inline-block;
     width: 225px;
+}
+.gtd-task-label-0 {}
+.gtd-task-label-1 { width: 215px; }
+.gtd-task-label-2 { width: 205px; }
+.gtd-task-label-3 { width: 195px; }
+.gtd-task-label-4 { width: 185px; }
+
+.gtd-task-title {}
+.gtd-item-notes {
+    font-size: small;
+    font-style: italic;
+    margin: 4 0 1 0;
+}
+.gtd-task-due-date {
+    font-size: small;
+}
+.gtd-item-due {
+    margin: 4 0 1 0;
+    font-weight: bold;
+}
+.gtd-item-date {}
+
+.gtd-add-task {
+    font-size: small;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.gtd-add-task-button {
+    margin-top: 4px;
 }

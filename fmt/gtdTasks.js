@@ -84,7 +84,7 @@ function uiDeleteTaskList(e) {
 function createPanel(title, footer, id) {
     var panel = document.createElement('div');
     var panelHeading = document.createElement('div');
-    var phData = document.createElement('h3');
+    var phData = document.createElement('div');
  
     panel.classList.add('panel', 'panel-primary', 'panel-gtd');
     panel.id = id;
@@ -114,29 +114,100 @@ function createPanel(title, footer, id) {
 
     pFoot = document.createElement('div');
     pFoot.classList.add('panel-footer');
-    pFoot.innerHTML = "Footer Text";
+
+    var newTaskButton = document.createElement('i');
+    newTaskButton.classList.add('fa', 'fa-fw', 'fa-plus', 'gtd-add-task-button', 'pull-left');
+    newTaskButton.onclick = uiTaskAdd;
+    pFoot.appendChild(newTaskButton);
+
+    var inputSpan = document.createElement('span');
+    inputSpan.style.display = 'block';
+    inputSpan.style.overflow = 'hidden';
+    var newTask = document.createElement('input');
+    newTask.type = 'text';
+    newTask.classList.add('gtd-add-task');
+    newTask.onkeyup = uiTaskAdd;
+    inputSpan.appendChild(newTask);
+    pFoot.appendChild(inputSpan);
     panel.appendChild(pFoot);
 
     return { panel: panel, body: pBody, list: pList, footer: pFoot };
+}
+
+function uiTaskAdd(e) {
+    
+    /* accept mouse clicks (keycode==undefined) and 'enter' */
+    if (e.keyCode && e.keyCode != 13)
+        return;
+    
+    var panel = $(this).closest('.panel');
+    var taskList = taskListByID(panel.attr('id'));
+    var input = panel.find('.gtd-add-task');
+    var pList = panel.find('ul');
+
+    console.log("uiTaskAdd("+taskList.id+"): " + input.val());
+    
+    /* add the task to the google infra */
+    var task = { 
+        id: "this-is-a-bogus-id",
+        title: input.val(),
+        completed: false
+    };
+    
+    var pItem = document.createElement('li');
+    pItem.classList.add('list-group-item');
+    pItem.id = task.id;
+
+    /* create the display entry for this task */
+    divTaskEntry(pItem, task, {});
+
+    /* weave it into the list */
+    pList.append(pItem);
+    
+    /* cleanup */
+    input.val("");
+}
+
+/*
+ * Convert a timestamp from a Task into DD/MM/YYYY and hh:mm:ss
+ */
+function taskTime_to_datetime(tt) {
+    /* should probably adjust from GMT to locale */
+    return [ tt.slice(0,10), tt.slice(11,19) ];
+}
+
+function dateTime_to_taskTime(dt, tt) {
+    var gTime = dt + "T";
+    if (tt && tt != "")
+        gTime += tt;
+    else
+        gTime += "00:00:00"
+    
+    /* should probably adjust from GMT to locale */
+
+    return gTime + ".000Z";
 }
 
 function uiTaskEditModal() {
     var listItem = $(this).closest('li');
     var task = taskByID(listItem.attr('id'));
 
-    console.log("edit task: " + this.id + "  " + task.title);
+    console.log("edit task: " + task.id + "  " + task.title);
     var modal = $("#gtdTaskEditModal");
     
     var title = $("#gtdEditModalTitle");
     title.html("Edit Task - " + task.title);
     
     var taskID = $("#gtdEditModalTaskID");
-    taskID.val(this.id);
+    taskID.val(task.id);
     
     if (task.hasOwnProperty('due')) {
-        console.log("Due: " + task.due);
+        var dt = taskTime_to_datetime(task.due);
+        console.log("Due: " + dt[0] + " Time: " + dt[1]);
         var dueDate = $("#gtdEditModalDate");
-        dueDate.val(task.due);
+        dueDate.val(dt[0]);
+        var dueTime = $("#gtdEditModalTime");
+        dueTime.val(dt[1]);
     }
     
     if (task.hasOwnProperty('notes')) {
@@ -151,17 +222,26 @@ function uiTaskEditModal() {
 function gtdEditModalOk() {
     console.log("ID: " + $("#gtdEditModalTaskID").val());
     var task = taskByID($("#gtdEditModalTaskID").val());
+    var listInfo = $('#'+task.id).find('.gtd-task-label');
 
     var notes = $("#gtdEditModalNotes").val();
     if (notes && notes != "") {
-        console.log("Notes: " + notes);
         task.notes = notes;
+        listInfo.find('.gtd-item-notes').html(notes);
     }
 
     var dueDate = $("#gtdEditModalDate").val();
+    var dueTime = $("#gtdEditModalTime").val();
     if (dueDate && dueDate != "") {
         console.log("Due Date: " + dueDate);
-        task.due = dueDate;
+        console.log("Due Time: " + dueTime);
+        
+        task.due = dateTime_to_taskTime(dueDate, dueTime);
+        
+        var dueBlock = listInfo.find('.gtd-task-due-date');
+        var dueDate = dueBlock.find('.gtd-item-date');
+        dueDate.html(task.due);
+        dueBlock.show();
     }
     
     /* clean up */
@@ -232,7 +312,7 @@ function divTaskEntry(pItem, task, prefs) {
     next.onclick = uiTaskNext;
 
     var done = document.createElement('i');
-    done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left');
+    done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left', 'gtd-task-indent-'+pd);
     done.onclick = uiTaskCompleted;
 
     var edit = document.createElement('i');
@@ -240,8 +320,35 @@ function divTaskEntry(pItem, task, prefs) {
     edit.onclick = uiTaskEditModal;
     
     var info = document.createElement('div');
-    info.classList.add('gtd-task-label');
-    info.innerHTML = task.title;
+    info.classList.add('gtd-task-label', 'gtd-task-label-'+pd);
+    var hInfo = document.createElement('span');
+    hInfo.classList.add('gtd-task-title');
+    hInfo.innerHTML = task.title;
+    info.appendChild(hInfo);
+    
+    /* create the div for notes regardless */
+    var notes = document.createElement('div');
+    notes.classList.add('gtd-item-notes');
+    info.appendChild(notes);
+    if (task.notes)
+        notes.innerHTML = task.notes;
+
+    var due = document.createElement('div');
+    due.classList.add('gtd-task-due-date');
+    due.style.display = 'none';
+    info.appendChild(due);
+    var l = document.createElement('span');
+    l.innerHTML = "Due: ";
+    l.classList.add('gtd-item-due');
+    var d = document.createElement('span');
+    d.classList.add('gtd-item-date');
+    d.innerHTML = "";
+    due.appendChild(l);
+    due.appendChild(d);
+    if (task.due) {
+        d.innerHTML = task.due;
+        due.style.display = 'block';
+    }
 
     /* formatting */
     if (task.completed) {
