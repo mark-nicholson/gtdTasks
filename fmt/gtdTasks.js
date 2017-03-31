@@ -145,9 +145,9 @@ function uiTaskAdd(e) {
     var input = panel.find('.gtd-add-task');
     var pList = panel.find('ul');
 
-    console.log("uiTaskAdd("+taskList.id+"): " + input.val());
+    //console.log("uiTaskAdd("+taskList.id+"): " + input.val());
     
-    /* add the task to the google infra */
+    /* TO-DO: add the task to the google infra */
     var task = { 
         id: "this-is-a-bogus-id",
         title: input.val(),
@@ -240,7 +240,7 @@ function gtdEditModalOk() {
         
         var dueBlock = listInfo.find('.gtd-task-due-date');
         var dueDate = dueBlock.find('.gtd-item-date');
-        dueDate.html(task.due);
+        dueDate.html(displayDateTime(task.due));
         dueBlock.show();
     }
     
@@ -346,7 +346,7 @@ function divTaskEntry(pItem, task, prefs) {
     due.appendChild(l);
     due.appendChild(d);
     if (task.due) {
-        d.innerHTML = task.due;
+        d.innerHTML = displayDateTime(task.due);
         due.style.display = 'block';
     }
 
@@ -366,6 +366,11 @@ function divTaskEntry(pItem, task, prefs) {
 
     /* return the completed item */
     return pItem;
+}
+
+function displayDateTime(gt) {
+    var info = taskTime_to_datetime(gt);
+    return info[0] + " at " + info[1];
 }
 
 /*
