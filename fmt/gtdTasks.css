@@ -16,6 +16,9 @@
 .panel-gtd .list-group-item {
     padding: 3px 5px;
 }
+.panel-gtd .list-group-item .fa-reorder {
+    cursor: move;
+}
 .panel-gtd .panel-footer {
     padding: 3px 5px;    
 }

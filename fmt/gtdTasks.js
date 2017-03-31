@@ -74,6 +74,12 @@ function taskListsSelectionList(divID) {
     }
 }
 
+function uiNewTaskListOk() {
+    var name = $('#gtdNewTaskListName').val();
+    
+    console.log("uiNewTaskListOk() " + name);
+}
+
 function uiDeleteTaskList(e) {
     var panel = $(this).closest('.panel');
     var taskList = taskListByID(panel.attr('id'));
@@ -109,7 +115,15 @@ function createPanel(title, footer, id) {
     panel.appendChild(pBody);
     
     pList = document.createElement('ul');
-    pList.classList.add('list-group')
+    pList.classList.add('list-group');
+    if (title != "Next-Tasks") {
+        pList.classList.add('drag-list-group');
+        $(pList).sortable({
+            handle: ".fa-reorder",
+            update: uiTaskDrag,
+            connectWith: [ '.drag-list-group' ]
+        });
+    }
     pBody.appendChild(pList);
 
     pFoot = document.createElement('div');
@@ -250,15 +264,25 @@ function gtdEditModalOk() {
     /* eventually write back to google */
 }
 
-function uiTaskDrag(e) {
-    var listItem = $(this).closest('li');
-    var task = taskByID(listItem.attr('id'));
+function uiTaskDrag(event, ui) {
+    var dragItem = ui.item;
+    var dragTask = taskByID(dragItem.attr('id'));
+    var startPanel = $(this).closest('.panel');
+    var startTaskList = taskListByID(startPanel.attr('id'));
+    
+    var targetPanel = dragItem.closest('.panel');
+    var targetTaskList = taskListByID(targetPanel.attr('id'));
 
-    console.log("uiTaskDrag()");
+    console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
     
     /* TO-DO: update task entry to reflect the change */
     
-    /* tweak the UI */
+    console.log("ui.item.index(" + dragItem.index() + ")");
+    
+    /* pop task from originate list */
+    console.log("HOOK UP task relocation!!");
+    /* insert into new list */
+    
 }
 
 function uiTaskNext(e) {
@@ -289,7 +313,7 @@ function uiTaskCompleted(e) {
     listItem.find('.gtd-task-label').toggleClass('gtd-completed');
 }
 
-function divTaskEntry(pItem, task, prefs) {
+function divTaskEntry(pItem, task) {
         
     var checkbox, label;
     var pd = 0;
@@ -305,7 +329,6 @@ function divTaskEntry(pItem, task, prefs) {
     /* setup icons */
     var drag = document.createElement('i');
     drag.classList.add('fa', 'fa-fw', 'fa-reorder', 'pull-left');
-    drag.ondrag = uiTaskDrag;
     
     var next = document.createElement('i');
     next.classList.add('fa', 'fa-fw', 'fa-star-o', 'pull-left');
@@ -376,7 +399,7 @@ function displayDateTime(gt) {
 /*
  * Create a BS-panel for each tasklist and its tasks
  */
-function taskListPanel(taskList, prefs) {
+function taskListPanel(taskList) {
     var pItem, task, tIdx, tasks;
     var panelInfo = {
         panel: null,
@@ -398,7 +421,7 @@ function taskListPanel(taskList, prefs) {
             continue;
         
         /* manage user display */
-        if (task.completed && !prefs.includeCompleted)
+        if (task.completed && !gtdTaskPreferences.includeCompleted)
             continue;
 
         /* make a new list item */
@@ -407,7 +430,7 @@ function taskListPanel(taskList, prefs) {
         pItem.id = task.id;
 
         /* create the display entry for this task */
-        divTaskEntry(pItem, task, prefs);
+        divTaskEntry(pItem, task);
         
         /* weave it into the list */
         pComp.list.appendChild(pItem);
@@ -415,7 +438,7 @@ function taskListPanel(taskList, prefs) {
     }
     
     /* should render in background (hidden) to get size estimates.*/
-    var sb = document.getElementById('printArea');
+    var sb = document.getElementById('tasksArea');
     sb.appendChild(pComp.panel);
     panelInfo.height = pComp.panel.clientHeight;
     panelInfo.width = pComp.panel.clientWidth;
@@ -430,14 +453,14 @@ function taskListPanel(taskList, prefs) {
     return panelInfo;
 }
 
-function renderTasks(prefs) {
+function renderTasks() {
     'use strict';
     var fit = 'linear';
     var ti, tl, nextTL=null, item, taskLists, divs = [], tls = [], nextTLDiv;
-    var printArea = document.getElementById('printArea');
+    var tasksArea = document.getElementById('tasksArea');
     
     /* always have next-tasks first */
-    taskLists = prefs.taskLists;
+    taskLists = gtdTaskPreferences.taskLists;
 
     for (ti in taskLists){
         console.log("got: " + taskLists[ti].title);
@@ -461,31 +484,31 @@ function renderTasks(prefs) {
     /*
      * Clear out any pre-existing divs...
      */
-    while (printArea.childElementCount > 0)
-        printArea.removeChild(printArea.firstChild);
+    while (tasksArea.childElementCount > 0)
+        tasksArea.removeChild(tasksArea.firstChild);
 
     var panels = [];
     
     /* setup the next task div */
     if (nextTL) {
-        nextTLDiv = taskListPanel(nextTL, prefs);
+        nextTLDiv = taskListPanel(nextTL);
         panels.push(nextTLDiv);
     }
 
     /* fill in the rest of the divs */
     for (ti in taskLists) {
         tl = taskLists[ti];
-        item = taskListPanel(tl, prefs);
+        item = taskListPanel(tl);
         panels.push(item);
     }
     
     /* lay them out so the screen can identify their true size */
-    standardLayout(printArea, panels);
+    standardLayout(tasksArea, panels);
     console.log("After Layout");
     checkSizes();
     
     /* re-arrange the panels to be best fit */
-    optimizeLayout(printArea, panels);
+    optimizeLayout(tasksArea, panels);
 }
 
 function standardLayout(area, panels) {
@@ -495,7 +518,7 @@ function standardLayout(area, panels) {
         if (pi % 3 == 0) {
             row = document.createElement('div');
             row.classList.add('row');
-            printArea.appendChild(row);
+            tasksArea.appendChild(row);
         }
     
         col = document.createElement('div');
@@ -507,7 +530,7 @@ function standardLayout(area, panels) {
     return;
 }
 
-function optimizeLayout(printArea, panels) {
+function optimizeLayout(tasksArea, panels) {
     var idx, tl, panel;
     var taskLists = dupTasksList();
     var panels = [], nextPanel;
@@ -540,8 +563,8 @@ function optimizeLayout(printArea, panels) {
     }
 
     /* scrub it */
-    while (printArea.childElementCount > 0)
-        printArea.removeChild(printArea.firstChild);
+    while (tasksArea.childElementCount > 0)
+        tasksArea.removeChild(tasksArea.firstChild);
     
     /* should be grabbing the Next-Tasks */
     nextPanel = panels.shift();
@@ -552,7 +575,7 @@ function optimizeLayout(printArea, panels) {
         row = document.createElement('div');
         row.classList.add('row');
         row.classList.add('gtd-page');
-        printArea.appendChild(row);
+        tasksArea.appendChild(row);
 
         /* add up to the max number of columns */
         for (idx=0; idx < 3; idx++) {
@@ -610,11 +633,11 @@ function getBestTL(colPx, panels) {
 }
 
 function checkSizes() {
-    var printArea = document.getElementById('printArea');
-    console.log("printArea.client: %sx%s", 
-                printArea.clientWidth, printArea.clientHeight);
-    console.log("printArea:        %sx%s",
-                printArea.width, printArea.height);
+    var tasksArea = document.getElementById('tasksArea');
+    console.log("tasksArea.client: %sx%s", 
+                tasksArea.clientWidth, tasksArea.clientHeight);
+    console.log("tasksArea:        %sx%s",
+                tasksArea.width, tasksArea.height);
     
     console.log("window.inner:     %sx%s",
                 window.innerWidth, window.innerHeight);
@@ -649,5 +672,5 @@ var addEvent = function(object, type, callback) {
 //addEvent(window, "resize", resizePage);
 
 function resizePage() {
-    renderTasks(prefs);
+    renderTasks();
 }

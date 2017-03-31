@@ -17,10 +17,11 @@
 </head>
 
 <body id='gtdBody'>
-    <!-- <button type="button" onclick="showPrintPrefs()">Show</button> -->
-    <button type="button" class="btn btn-info hidden-print" data-toggle="modal" data-target="#gtdPrintModal">Show</button>
+    <!-- <button type="button" onclick="showPrefsPrefs()">Show</button> -->
+    <button type="button" class="btn btn-info hidden-print" data-toggle="modal" data-target="#gtdPrefsModal">Prefs</button>
+    <button type="button" class="btn btn-info hidden-print" data-toggle="modal" data-target="#gtdNewTaskListModal">New</button>
     <button type="button" class="btn btn-info hidden-print" onclick="checkSizes()">Sizes</button>
-    <div id='printArea' class='container'></div>
+    <div id='tasksArea' class='container'></div>
     <div id="sandbox" class='container' style="display: none;"></div>
 </body>
 
@@ -37,6 +38,7 @@
 </script>
 
 <script src="node_modules/jquery/dist/jquery.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
 
 <!--
@@ -45,57 +47,77 @@
 
 <!-- Modal Dialogs -->
 
-<!-- Print Selector -->
-<div id="gtdPrintModal" class="modal fade gtd-modal" role="dialog">
+<!-- Prefs Selector -->
+<div id="gtdPrefsModal" class="modal fade gtd-modal" role="dialog">
   <div class="modal-dialog">
 
     <!-- Modal content-->
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Print Preferences</h4>
+        <h4 class="modal-title">gtdTasks Preferences</h4>
       </div>
       <div class="modal-body">
-        <p>Select Lists to Print...</p>
-        <ul class="list-group" id="gtdPrintModalTaskLists"></ul>
-        <input type="checkbox" id="gtdPrintModalIncludeDone">
+        <p>Select Lists to display...</p>
+        <ul class="list-group" id="gtdPrefsModalTaskLists"></ul>
+        <input type="checkbox" id="gtdPrefsModalIncludeDone">
           Include Completed Tasks
         </input>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="gtdPrintModalOk()">Ok</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="gtdPrefsModalOk()">Ok</button>
         <button type="button" class="btn btn-default" data-dismiss="modal" >Cancel</button>
       </div>
     </div>
 
   </div>
   <script type="text/javascript">
-    $('#gtdPrintModal').on('show.bs.modal', gtdPrintModalShow);
-    function gtdPrintModalShow() {
-        taskListsSelectionList('gtdPrintModalTaskLists');
+    $('#gtdPrefsModal').on('show.bs.modal', gtdPrefsModalShow);
+    function gtdPrefsModalShow() {
+        taskListsSelectionList('gtdPrefsModalTaskLists');
     }
-    function gtdPrintModalOk() {
+    function gtdPrefsModalOk() {
         var ul, idx;
-        var cb = document.getElementById("gtdPrintModalIncludeDone");
-        var prefs = {
-            taskLists: [],
-            includeCompleted: cb.checked
-        };
+        var cb;
+        
+        cb = document.getElementById("gtdPrefsModalIncludeDone");
+        gtdTaskPreferences.includeCompleted = cb.checked;
 
-        ul = $("#gtdPrintModalTaskLists");
+        ul = $("#gtdPrefsModalTaskLists");
         for (idx in ul.children()) {
             cb = ul.children().get(idx).firstChild;
             if (!cb)
                 continue;
             console.log(cb.id);
             if (cb.checked)
-                prefs.taskLists.push(taskListByID(cb.id));
+                gtdTaskPreferences.taskLists.push(taskListByID(cb.id));
         };
         
-        renderTasks(prefs);
+        renderTasks();
     }
   </script>
 </div>
+
+<!-- New TaskList -->
+<div id="gtdNewTaskListModal" class="modal fade gtd-modal" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">New Task List ...</h4>
+      </div>
+      <div class="modal-body form-group">
+        <label for="gtdNewTaskListName">Name:</label>
+        <input type="text" class="form-control" id="gtdNewTaskListName"></input>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal" onclick="uiNewTaskListOk()">Ok</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" >Cancel</button>
+      </div>
+    </div>
+  </div>
 
 <!-- Edit Selector -->
 <div id="gtdTaskEditModal" class="modal fade gtd-modal" role="dialog">
@@ -124,8 +146,9 @@
       </div>
     </div>
   </div>
+
   <script type="text/javascript">
-    $('#gtdPrintModal').on('hide.bs.modal', gtdEditModalHide);
+    $('#gtdPrefsModal').on('hide.bs.modal', gtdEditModalHide);
     function gtdEditModalHide() {
         /* restore it back to a clean state */
         console.log("gtdEditModalHide()");
@@ -134,6 +157,18 @@
         $("#gtdEditModalDate").val(null);
         $("#gtdEditModalNotes").val("");
     }
+      
+      var gtdTaskPreferences = {
+            taskLists: [],
+            includeCompleted: false
+        };
+      
+      /* debug */
+    gtdTaskPreferences.taskLists = dupTasksList();
+      
+    /* initial render */
+    renderTasks();
+
   </script>
 </div>
 
