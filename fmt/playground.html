@@ -19,13 +19,24 @@
             width: 270px;
             //color: orange;
         }
+        .datepicker{z-index:1151 !important;}
     </style>
 </head>
 <body>
 
-    <div class="content">
+    <div class="container">
         <div class="row">
             <div class="col-md-4">
+                
+                <div class="form-group">
+                    <div class='input-group date' id='datetimepicker1'>
+                        <input type='text' class="form-control" />
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </span>
+                    </div>
+                </div>
+                
             </div>
             <div class="col-md-4">
                 <div class="panel panel-default">
@@ -116,4 +127,11 @@
 </body>
 <script src="node_modules/jquery/dist/jquery.js"></script>
 <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
+
+<script type="text/javascript">
+    $(function () {
+        $('#datetimepicker1').datetimepicker();
+    });
+</script>
+
 </html>
