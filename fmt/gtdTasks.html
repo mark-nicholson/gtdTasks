@@ -43,12 +43,12 @@
 <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
 <script type="text/javascript" src="node_modules/file-saver/FileSaver.min.js"></script>
 
-<script src="node_modules/googleapis/lib/googleapis.js"></script>
-<script src="node_modules/google-auth-library/lib/auth/googleauth.js"></script>
+<!-- <script src="node_modules/googleapis/lib/googleapis.js"></script>
+<script src="node_modules/google-auth-library/lib/auth/googleauth.js"></script> -->
 
 <script src="gtdTasks.js"></script>
 <script src="google_intf.js"></script>
-<script src="tdata.js"></script>
+<!-- <script src="tdata.js"></script> -->
 
 
 
@@ -171,19 +171,14 @@
         $("#gtdEditModalDate").val(null);
         $("#gtdEditModalNotes").val("");
     }
-      
-      var gtdTaskPreferences = {
-            taskLists: [],
-            includeCompleted: false
-        };
-      
-      /* debug */
-    gtdTaskPreferences.taskLists = dupTasksList();
-      
-    /* initial render */
-    renderTasks();
 
-  </script>
+    /* define this globally */
+    var gtdTaskPreferences = {
+        taskLists: [],
+        includeCompleted: false
+    };
+
+</script>
 
   <script async defer src="https://apis.google.com/js/api.js"
       onload="this.onload=function(){};handleClientLoad()"

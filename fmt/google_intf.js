@@ -68,9 +68,9 @@ function handleAuthClick(event) {
 *  Manage the JSON button
 */
 function handleJsonClick(event) {
-    if (mycache['taskLists'].length == Object.keys(mycache['tasks']).length) {
+    if (tData['taskLists'].length == Object.keys(tData['tasks']).length) {
         var blob = new Blob(
-            [ JSON.stringify(mycache) ],
+            [ JSON.stringify(tData) ],
             { type: "application/json;charset=utf-8"}
         );
         saveAs(blob, "data.json");              
@@ -83,22 +83,30 @@ function handleJsonClick(event) {
 /*
  * Loading support
  */
-var mycache = {
+var tData = {
   'taskLists': [],
   'tasks': {}
 }
 
 function loadTasksCache(response) {
     tasks = response.result.items;
-    mycache['tasks'][this.id] = tasks;
+    tData['tasks'][this.id] = tasks;
     //json_when_complete();
+    
+    /* whichever set of tasks is last to be added triggers the initial render */
+    if (tData['taskLists'].length == Object.keys(tData['tasks']).length) {
+        
+        gtdTaskPreferences.taskLists = dupTasksList();
+        
+        renderTasks();
+    }
 }
 
 function loadTaskListsCache(response) {
-    mycache['taskLists'] = response.result.items;
+    tData['taskLists'] = response.result.items;
 
-    for (var idx in mycache['taskLists']) {
-        var tl = mycache['taskLists'][idx];
+    for (var idx in tData['taskLists']) {
+        var tl = tData['taskLists'][idx];
         gapi.client.tasks.tasks.list({'tasklist': tl.id}).then(
             loadTasksCache, handleTasksError, tl
         );
