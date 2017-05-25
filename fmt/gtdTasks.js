@@ -243,7 +243,9 @@ function uiTaskEditModal() {
         notes.val(task.notes);
     }
     
+    console.log("before show");
     modal.modal('show');
+    console.log("after show");
 }
 
 function gtdEditModalOk() {
