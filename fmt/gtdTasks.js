@@ -324,7 +324,7 @@ function divTaskEntry(pItem, task) {
         cur = taskByID(cur.parent);
         pd++;
     }
-    console.log("Task: " + task.title + " parentage: " + pd);
+    //console.log("Task: " + task.title + " parentage: " + pd);
 
     /* setup icons */
     var drag = document.createElement('i');
@@ -408,6 +408,7 @@ function taskListPanel(taskList) {
         taskList: taskList,
         next: null
     };
+
     var pComp = createPanel(taskList.title, "Footer Text", taskList.id);
     panelInfo.panel = pComp.panel;
     
@@ -469,6 +470,7 @@ function renderTasks() {
     ti = taskLists.findIndex(function(element) {
         return element.title == 'Next-Tasks';
     })
+    console.log("  next-tasks idx = " + ti);
     if (ti >= 0)
         nextTL = taskLists.splice(ti,1)[0];
 
@@ -487,34 +489,35 @@ function renderTasks() {
     while (tasksArea.childElementCount > 0)
         tasksArea.removeChild(tasksArea.firstChild);
 
-    var panels = [];
+    var panelInfo = [];
     
     /* setup the next task div */
     if (nextTL) {
-        nextTLDiv = taskListPanel(nextTL);
-        panels.push(nextTLDiv);
+        console.log("cooking up nextTL panel");
+        item = taskListPanel(nextTL);
+        panelInfo.push(item);
     }
 
     /* fill in the rest of the divs */
     for (ti in taskLists) {
         tl = taskLists[ti];
         item = taskListPanel(tl);
-        panels.push(item);
+        panelInfo.push(item);
     }
     
     /* lay them out so the screen can identify their true size */
-    standardLayout(tasksArea, panels);
+    standardLayout(tasksArea, panelInfo);
     console.log("After Layout");
     checkSizes();
     
     /* re-arrange the panels to be best fit */
-    optimizeLayout(tasksArea, panels);
+    optimizeLayout(tasksArea, panelInfo);
 }
 
-function standardLayout(area, panels) {
+function standardLayout(area, panelInfo) {
     var row, col, pi;
     
-    for (pi in panels) {
+    for (pi in panelInfo) {
         if (pi % 3 == 0) {
             row = document.createElement('div');
             row.classList.add('row');
@@ -523,53 +526,32 @@ function standardLayout(area, panels) {
     
         col = document.createElement('div');
         col.classList.add('col-xs-4');
-        col.appendChild(panels[pi].panel);
+        col.appendChild(panelInfo[pi].panel);
         row.appendChild(col);
     }
     
     return;
 }
 
-function optimizeLayout(tasksArea, panels) {
+function optimizeLayout(tasksArea, panelInfo) {
     var idx, tl, panel;
-    var taskLists = dupTasksList();
-    var panels = [], nextPanel;
+    var nextPanel = null;
     var row, col, cols = [];
     
-    for (idx in taskLists) {
-        tl = taskLists[idx];
-        panel = document.getElementById(tl.id);
-        if (!panel)
-            continue;
-        
-        /* check for panel taller than the screen... */
-        if (panel.clientHeight >= window.innerHeight) {
-            console.log(tl.title + ": " + panel.clientWidth + " x " + panel.clientHeight);
-            console.log("----- need to split into more panels")
-        }
-        else {
-            panels.push( { 
-                panel: panel,
-                taskList: tl,
-                width: panel.clientWidth,
-                height: panel.clientHeight,
-                next: null
-            });
-            console.log(tl.title + ": " + panel.clientWidth + " x " + panel.clientHeight);
-        }
-        
-        /* disconnect the panel */
-        panel.parentElement.removeChild(panel);
-    }
-
     /* scrub it */
     while (tasksArea.childElementCount > 0)
         tasksArea.removeChild(tasksArea.firstChild);
     
     /* should be grabbing the Next-Tasks */
-    nextPanel = panels.shift();
+    for (idx in panelInfo) {
+        if (panelInfo[idx].taskList.title == 'Next-Tasks') {
+            nextPanel = panelInfo.splice(idx, 1)[0];
+            break;
+        }
+    }
+    //nextPanel = panelInfo.shift();
 
-    while (panels.length > 0) {
+    while (panelInfo.length > 0) {
 
         /* concern only with height */
         row = document.createElement('div');
@@ -586,9 +568,9 @@ function optimizeLayout(tasksArea, panels) {
             cols.push(col);
 
             /* fill it up */
-            while (panels.length > 0) {
+            while (panelInfo.length > 0) {
                 if (!nextPanel)
-                    nextPanel = getBestTL(colPx, panels);
+                    nextPanel = getBestTL(colPx, panelInfo);
 
                 if (!nextPanel) {
                     console.log("filled this column")
@@ -606,8 +588,8 @@ function optimizeLayout(tasksArea, panels) {
             break;
     }
     
-    for (idx in panels) {
-        panel = panels[idx];
+    for (idx in panelInfo) {
+        panel = panelInfo[idx];
         console.log("Cannot fit panel: "+panel.height);
     }
 }
@@ -674,3 +656,31 @@ var addEvent = function(object, type, callback) {
 function resizePage() {
     renderTasks();
 }
+
+
+/****************************************************************************************
+ *
+ *             Google API Setup
+ *
+ ***************************************************************************************/
+
+//var google = require('googleapis');
+//var googleAuth = require('google-auth-library');
+
+//var OAuth2 = google.auth.OAuth2;
+//var oauth2Client = new OAuth2(
+//    "1068589952324-nikjd3ars2pghcbim00gsefn9r9inkso.apps.googleusercontent.com",
+//    "SreSsnWOMEB2QjjI9Ap366M-",
+//    "http://localhost"
+//);
+
+// set auth as a global default
+//google.options({
+//  auth: oauth2Client
+//});
+
+//var googleTasks = google.tasks({
+//    version: 'v2',
+//    auth: oauth2Client
+//});
+
