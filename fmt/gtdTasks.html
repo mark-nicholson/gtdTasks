@@ -17,12 +17,16 @@
 </head>
 
 <body id='gtdBody'>
-    <!-- <button type="button" onclick="showPrefsPrefs()">Show</button> -->
+
     <button type="button" class="btn btn-info hidden-print" data-toggle="modal" data-target="#gtdPrefsModal">Prefs</button>
     <button type="button" class="btn btn-info hidden-print" data-toggle="modal" data-target="#gtdNewTaskListModal">New</button>
     <button type="button" class="btn btn-info hidden-print" onclick="checkSizes()">Sizes</button>
+    <button type="button" class="btn btn-info hidden-print" id="json-button">JSON</button>
+    <button type="button" class="btn btn-info hidden-print" id="authorize-button">Authorize</button>
+
     <div id='tasksArea' class='container'></div>
     <div id="sandbox" class='container' style="display: none;"></div>
+
 </body>
 
 <footer class="gtd-footer">
@@ -37,10 +41,15 @@
 <script src="node_modules/jquery/dist/jquery.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
+<script type="text/javascript" src="node_modules/file-saver/FileSaver.min.js"></script>
+
+<script src="node_modules/googleapis/lib/googleapis.js"></script>
+<script src="node_modules/google-auth-library/lib/auth/googleauth.js"></script>
 
 <script src="gtdTasks.js"></script>
+<script src="google_intf.js"></script>
 <script src="tdata.js"></script>
-<script src='https://apis.google.com/js/client.js'></script>
+
 
 
 <!--
@@ -174,6 +183,11 @@
     /* initial render */
     renderTasks();
 
+  </script>
+
+  <script async defer src="https://apis.google.com/js/api.js"
+      onload="this.onload=function(){};handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()">
   </script>
 </div>
 
