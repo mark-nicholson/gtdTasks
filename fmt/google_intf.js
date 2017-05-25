@@ -12,7 +12,6 @@ var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/tasks/v1/res
 var SCOPES = 'https://www.googleapis.com/auth/tasks.readonly';
 
 var authorizeButton = document.getElementById('authorize-button');
-//var signoutButton = document.getElementById('signout-button');
 var jsonButton = document.getElementById('json-button');
 
 /**
@@ -38,7 +37,6 @@ function initClient() {
         // Handle the initial sign-in state.
         updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         authorizeButton.onclick = handleAuthClick;
-        //signoutButton.onclick = handleSignoutClick;
         jsonButton.onclick = handleJsonClick;
     });
 }
@@ -50,31 +48,20 @@ function initClient() {
 function updateSigninStatus(isSignedIn) {
     if (isSignedIn) {
         authorizeButton.innerHTML = 'Sign Out'
-        //authorizeButton.style.display = 'none';
-        //signoutButton.style.display = 'block';
         loadData();
     } else {
         authorizeButton.innerHTML = 'Authorize'
-        //authorizeButton.style.display = 'block';
-        //signoutButton.style.display = 'none';
     }
 }
 
 /**
-*  Sign in the user upon button click.
+*  Sign in/out the user upon button click.
 */
 function handleAuthClick(event) {
     if (authorizeButton.innerHTML == 'Authorize')
         gapi.auth2.getAuthInstance().signIn();
     else
         gapi.auth2.getAuthInstance().signOut();
-}
-
-/**
-*  Sign out the user upon button click.
-*/
-function handleSignoutClick(event) {
-    gapi.auth2.getAuthInstance().signOut();
 }
 
 /**
