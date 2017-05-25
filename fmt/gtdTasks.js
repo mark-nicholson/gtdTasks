@@ -42,6 +42,7 @@ function taskListsSelectionList(divID) {
     var taskList, tIdx, checkbox, label, pItem;
     var pList = document.getElementById(divID);
     var taskLists = dupTasksList();
+    var found, sIdx, stl;
 
     /* clear out any previous list ... */
     while (pList.childElementCount > 0)
@@ -50,16 +51,28 @@ function taskListsSelectionList(divID) {
     /* fill in the list */
     for (tIdx in taskLists) {
         taskList = taskLists[tIdx];
+        found = false;
         
         /* ignore cruft */
         if (!taskList.title || taskList.title == "")
             continue;
         
+        /* check the existing prefs so the defaults match */
+        if (gtdTaskPreferences.taskLists != null) {
+            for (sIdx in gtdTaskPreferences.taskLists) {
+                stl = gtdTaskPreferences.taskLists[sIdx];
+                if (stl.id == taskList.id) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+
         checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = taskList.id;
         checkbox.classList.add('gtd-checkbox');
-        checkbox.checked = true;  /* assume everything */
+        checkbox.checked = found;
 
         var label = document.createElement('label');
         label.classList.add('gtd-checkbox-label');
@@ -549,7 +562,6 @@ function optimizeLayout(tasksArea, panelInfo) {
             break;
         }
     }
-    //nextPanel = panelInfo.shift();
 
     while (panelInfo.length > 0) {
 
