@@ -9,6 +9,10 @@ class TaskData {
         this._tasks = {};                 // all tasks by id
         this._tasks_by_tasklist = {};     // all tasks per task list
         this._lists_loaded = 0;
+        
+        /* preferences */
+        this._pref_taskLists = [];
+        this._pref_includeCompleted = false;
     }
     
     loaded() {
@@ -16,8 +20,20 @@ class TaskData {
     }
     
     addTaskList(newTL) {
+        /* check for previous entry */
+        var oldTL = this.taskListByID(newTL.id);
+        
+        if (oldTL != null) {
+            if (oldTL.updated == newTL.updated)
+                return;  /* same old data */
+            else {
+                this.removeTaskList(oldTL);
+            }
+        }
+        
         this._taskLists[newTL.id] = newTL;
         this._tasks_by_tasklist[newTL.id] = [];
+        this._pref_taskLists.push(newTL);
     }
     
     removeTaskList(tl) {
@@ -25,25 +41,39 @@ class TaskData {
         var localTL = this._tasks_by_tasklist[tl.id].slice();
         for (var idx in localTL)
             this.removeTask(localTL[idx]);
-        
+
+        console.log("removeTaskList(): " + tl.title + "  " + tl.id);
+
         /* remove the tasklist from the cache buckets */
         delete this._taskLists[tl.id];
         delete this._tasks_by_tasklist[tl.id]
+        
+        /* remove it from the prefs -- may not be in it */
+        var idx = this._pref_taskLists.findIndex( function(item) {
+            return item.id == tl.id;
+        });
+        if (idx >= 0) {
+            console.log("removeTaskList() removing in _prefs at " + idx);
+            this._pref_taskLists.splice(idx,1);
+        }
+    }
+    
+    addTasks(newTasks, taskList) {
+        for (var task in newTasks)
+            this.addTask(task, taskList);
     }
     
     addTask(newTask, taskList) {
-        var items = newTask;
-        //if ( Object.prototype.toString.call( items ) !== '[object Array]' )
-        if (!Array.isArray(items))
-            items = [ newTask ];
+        var oldTask = this.taskByID(newTask.id);
         
-        /* apped then new items to the existing list */
-        this._tasks_by_tasklist[taskList.id] = this._tasks_by_tasklist[taskList.id].concat(items);
-
-        /* setup the task mapping */
-        for (var idx in items) {
-            this._tasks[items[idx].id] = items[idx];
+        if (oldTask != null) {
+            if (oldTask.updated == newTask.updated)
+                return;  /* same old data */
+            this.removeTask(oldTask);
         }
+        
+        this._tasks[newTask.id] = newTask;
+        this._tasks_by_tasklist[taskList.id].push(newTask);
     }
     
     removeTask(task) {
@@ -58,6 +88,25 @@ class TaskData {
 
         /* do this last */
         delete this._tasks[task.id];
+    }
+    
+    _removeTaskFromTaskList(task, taskList) {
+        var idx = this._tasks_by_tasklist[taskList.id].findIndex(function (item) {
+            return item.id == task.id;
+        });
+
+        /* remove it from the tasklist */
+        this._tasks_by_tasklist[taskList.id].splice(idx,1);
+    }
+    
+    moveTask(task, targetTaskList, idx) {
+        
+        /* remove task from current tasklist */
+        var curTL = this.taskListFromTaskID(task.id);
+        this._removeTaskFromTaskList(task, curTL);
+        
+        /* insert it into new task list at given position */
+        this._tasks_by_tasklist[targetTaskList.id].splice(idx, 0, task);
     }
     
     getTaskLists() {
@@ -123,9 +172,9 @@ function taskListsSelectionList(divID) {
             continue;
         
         /* check the existing prefs so the defaults match */
-        if (gtdTaskPreferences.taskLists != null) {
-            for (sIdx in gtdTaskPreferences.taskLists) {
-                stl = gtdTaskPreferences.taskLists[sIdx];
+        if (taskData._pref_taskLists != null) {
+            for (sIdx in taskData._pref_taskLists) {
+                stl = taskData._pref_taskLists[sIdx];
                 if (stl.id == taskList.id) {
                     found = true;
                     break;
@@ -168,9 +217,6 @@ function uiNewTaskListOk() {
         /* add to the local cache... */
         taskData.addTaskList(newTL);
 
-        /* add it to the prefs list */
-        gtdTaskPreferences.taskLists.push(newTL);
-
         /* re-render the page -- should create the new panel */
         renderTasks();
     });    
@@ -179,14 +225,19 @@ function uiNewTaskListOk() {
 function uiDeleteTaskList(e) {
     var panel = $(this).closest('.panel');
     var taskList = taskData.taskListByID(panel.attr('id'));
+    var tasksArea = document.getElementById('tasksArea');
 
     /* add ARE YOU SURE modal... */
-    console.log("deleteTaskList(" + taskList.id + ")");
+    console.log("deleteTaskList('" + taskList.title + "' [" + taskList.id + "])");
 
     /* update google and the local cache */
     gapi.client.tasks.tasklists.delete( {'tasklist': taskList.id} ).then(function(response) {
+        console.log("callback from uiDeleteTaskList: " + taskList.title + "  " + taskList.id);
         taskData.removeTaskList(taskList);
     });
+    
+    /* remove the panel itself */
+    panel.remove();
 }
 
 function createPanel(title, footer, id) {
@@ -274,7 +325,7 @@ function uiTaskAdd(e) {
             var newTask = response.result;
 
             /* update the cache */
-            taskData.addTask(newTask, tasklist);
+            taskData.addTask(newTask, taskList);
         
             /* polish the ui */
             var pItem = document.createElement('li');
@@ -369,9 +420,28 @@ function gtdEditModalOk() {
         dueDate.html(displayDateTime(task.due));
         dueBlock.show();
     }
+
+    /* collect data before we hide the modal */
+    var cb = document.getElementById("gtdEditModalDelete");
+    var deleteMe = cb.checked;
     
     /* clean up */
     gtdEditModalHide();
+    
+    /* remove the task if requested */
+    if (deleteMe) {
+        gapi.client.tasks.tasks.delete({
+            'task': task.id,
+            'tasklist': taskList.id
+        }).then(gapi_console_logger);
+        
+        /* remove UI entry and cache */
+        taskData.removeTask(task);
+        $('#'+task.id).remove()
+        
+        /* end here */
+        return;
+    }
     
     /* eventually write back to google */
     gapi.client.tasks.tasks.update({
@@ -393,14 +463,29 @@ function uiTaskDrag(event, ui) {
 
     console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
     
-    /* TO-DO: update task entry to reflect the change */
-    
     console.log("ui.item.index(" + dragItem.index() + ")");
+
+    var params = {
+        'task': dragTask.id,
+        'tasklist': targetTaskList.id
+    }
     
-    /* pop task from originate list */
-    console.log("HOOK UP task relocation!!");
-    /* insert into new list */
+    /* locate the previous task */
+    if (dragItem.index() > 0) {
+        var tasks = taskData.tasksByTaskListID(targetTaskList.id);
+        var prevTask = tasks[dragItem.index()-1]
+        
+        params['previous'] = prevTask.id;
+    }
+
+    /* do it */
+    gapi.client.tasks.tasks.move(params).then(gapi_console_logger);
     
+        
+    /* update cache */
+    taskData.moveTask(dragTask, targetTaskList, dragItem.index());
+    
+    /* ui should be ok... */
 }
 
 function uiTaskNext(e) {
@@ -562,7 +647,7 @@ function taskListPanel(taskList) {
             continue;
         
         /* manage user display */
-        if (task.completed && !gtdTaskPreferences.includeCompleted)
+        if (task.completed && !taskData._pref_includeCompleted)
             continue;
 
         /* make a new list item */
@@ -603,7 +688,7 @@ function renderTasks() {
     var tasksArea = document.getElementById('tasksArea');
     
     /* always have next-tasks first */
-    taskLists = gtdTaskPreferences.taskLists;
+    taskLists = taskData._pref_taskLists;
 
     for (ti in taskLists){
         console.log("got: " + taskLists[ti].title);
@@ -618,6 +703,7 @@ function renderTasks() {
 
     /* arrange the block shortest to tallest */
     taskLists.sort(function(a, b){
+        console.log("A:" + a.id + "  B:" + b.id);
         var lenA = taskData.taskListByID(a.id).length;
         var lenB = taskData.taskListByID(b.id).length;
         if (lenA < lenB) return -1;
@@ -901,7 +987,6 @@ function loadTasksCache(response) {
 
     /* whichever set of tasks is last to be added triggers the initial render */
     if (taskData.loaded()) {
-        gtdTaskPreferences.taskLists = taskData.getTaskLists();
         renderTasks();
     }
 }
@@ -920,6 +1005,9 @@ function loadTaskListsCache(response) {
 }
 
 function loadData() {
+    /* reset so the population can trigger a refresh */
+    taskData._lists_loaded = 0;
+    
     gapi.client.tasks.tasklists.list({
         'maxResults': 100
     }).then(loadTaskListsCache);
