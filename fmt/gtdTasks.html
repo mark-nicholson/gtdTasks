@@ -44,7 +44,6 @@
 <script type="text/javascript" src="node_modules/file-saver/FileSaver.min.js"></script>
 
 <script src="gtdTasks.js"></script>
-<script src="google_intf.js"></script>
 
 
 <!--
@@ -95,7 +94,7 @@
             cb = ul.children().get(idx).firstChild;
             if (!cb)
                 continue;
-            taskList = taskListByID(cb.id);
+            taskList = taskData.taskListByID(cb.id);
             if (cb.checked) {
                 console.log("  taskPref: " + taskList.title);
                 gtdTaskPreferences.taskLists.push(taskList);

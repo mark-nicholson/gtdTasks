@@ -1,39 +1,104 @@
 
-/* create a dup'ed list (shallow copy) and put next-tasks in 0 */
-function dupTasksList() {
-    var i, tl, rl;
-    rl = tData['taskLists'].slice(0)
-    for (i in rl) {
-        if (rl[i].title == 'Next-Tasks')
-            rl.unshift( rl.splice(i,1)[0] );
+/*
+ * Data Management Structure
+ */
+class TaskData {
+    
+    constructor() {
+        this._taskLists = {};             // all taskslists by id
+        this._tasks = {};                 // all tasks by id
+        this._tasks_by_tasklist = {};     // all tasks per task list
+        this._lists_loaded = 0;
     }
-    return rl;
-}
-
-function taskListByID(id) {
-    var idx, tl;
-    for (idx in tData['taskLists']) {
-        tl = tData['taskLists'][idx];
-        if (tl.id == id)
-            return tl;
+    
+    loaded() {
+        return Object.keys(this._taskLists).length == this._lists_loaded;
     }
-    return null;
-}
-
-function taskByID(id) {
-    var idx, tlTasks, key, task;
-    for (key in tData['tasks']) {
-        tlTasks = tData['tasks'][key];
+    
+    addTaskList(newTL) {
+        this._taskLists[newTL.id] = newTL;
+        this._tasks_by_tasklist[newTL.id] = [];
+    }
+    
+    removeTaskList(tl) {
+        /* blow away all of the tasks associated with this tasklist */
+        var localTL = this._tasks_by_tasklist[tl.id].slice();
+        for (var idx in localTL)
+            this.removeTask(localTL[idx]);
         
-        for (idx in tlTasks) {
-            task = tlTasks[idx];
-            if (task.id == id)
-                return task;
+        /* remove the tasklist from the cache buckets */
+        delete this._taskLists[tl.id];
+        delete this._tasks_by_tasklist[tl.id]
+    }
+    
+    addTask(newTask, taskList) {
+        var items = newTask;
+        //if ( Object.prototype.toString.call( items ) !== '[object Array]' )
+        if (!Array.isArray(items))
+            items = [ newTask ];
+        
+        /* apped then new items to the existing list */
+        this._tasks_by_tasklist[taskList.id] = this._tasks_by_tasklist[taskList.id].concat(items);
+
+        /* setup the task mapping */
+        for (var idx in items) {
+            this._tasks[items[idx].id] = items[idx];
         }
     }
-    return null;
     
+    removeTask(task) {
+        var tl = this.taskListFromTaskID(task.id);
+
+        var idx = this._tasks_by_tasklist[tl.id].findIndex(function (item) {
+            return item.id == task.id;
+        });
+
+        /* remove it from the tasklist */
+        var rv = this._tasks_by_tasklist[tl.id].splice(idx,1);
+
+        /* do this last */
+        delete this._tasks[task.id];
+    }
+    
+    getTaskLists() {
+    	var dupeTLs = [];
+        for (var key in this._taskLists) {
+            if (! this._taskLists.hasOwnProperty(key))
+                continue;
+            var tl = this._taskLists[key];
+            if (tl.title == 'Next-Tasks')
+                dupeTLs.unshift(tl);
+            else
+                dupeTLs.push(tl);
+        }
+        return dupeTLs;
+    }
+    
+    taskListByID(id) {
+    	if (! id in this._taskLists)
+            return null;
+        return this._taskLists[id];
+    }
+    
+    taskByID(id) {
+    	if (! id in this._tasks)
+            return null;
+        return this._tasks[id];
+    }
+    
+    taskListFromTaskID(id) {
+    	var task = this.taskByID(id);
+    	return this.taskListByID( task.selfLink.split('/')[6]);
+    }
+
+    tasksByTaskListID(id) {
+        return this._tasks_by_tasklist[id];
+    }
 }
+
+/* global data management */
+var taskData = new TaskData();
+
 
 /*
  * Populate <div> with a checkbox list of tasklists
@@ -41,7 +106,7 @@ function taskByID(id) {
 function taskListsSelectionList(divID) {
     var taskList, tIdx, checkbox, label, pItem;
     var pList = document.getElementById(divID);
-    var taskLists = dupTasksList();
+    var taskLists = taskData.getTaskLists();
     var found, sIdx, stl;
 
     /* clear out any previous list ... */
@@ -91,13 +156,37 @@ function uiNewTaskListOk() {
     var name = $('#gtdNewTaskListName').val();
     
     console.log("uiNewTaskListOk() " + name);
+    
+    var tasklist = {
+        'title': name
+    }
+ 
+    /* function callback is inline to access local function namespace */
+    gapi.client.tasks.tasklists.insert( {'resource': tasklist} ).then(function(response) {
+        var newTL = response.result;
+
+        /* add to the local cache... */
+        taskData.addTaskList(newTL);
+
+        /* add it to the prefs list */
+        gtdTaskPreferences.taskLists.push(newTL);
+
+        /* re-render the page -- should create the new panel */
+        renderTasks();
+    });    
 }
 
 function uiDeleteTaskList(e) {
     var panel = $(this).closest('.panel');
-    var taskList = taskListByID(panel.attr('id'));
+    var taskList = taskData.taskListByID(panel.attr('id'));
 
+    /* add ARE YOU SURE modal... */
     console.log("deleteTaskList(" + taskList.id + ")");
+
+    /* update google and the local cache */
+    gapi.client.tasks.tasklists.delete( {'tasklist': taskList.id} ).then(function(response) {
+        taskData.removeTaskList(taskList);
+    });
 }
 
 function createPanel(title, footer, id) {
@@ -168,31 +257,40 @@ function uiTaskAdd(e) {
         return;
     
     var panel = $(this).closest('.panel');
-    var taskList = taskListByID(panel.attr('id'));
+    var taskList = taskData.taskListByID(panel.attr('id'));
     var input = panel.find('.gtd-add-task');
     var pList = panel.find('ul');
 
-    //console.log("uiTaskAdd("+taskList.id+"): " + input.val());
-    
-    /* TO-DO: add the task to the google infra */
-    var task = { 
-        id: "this-is-a-bogus-id",
-        title: input.val(),
-        completed: false
-    };
-    
-    var pItem = document.createElement('li');
-    pItem.classList.add('list-group-item');
-    pItem.id = task.id;
+    /* create a template task */
+    var task = {}
+    task.title = input.val();
+    task.completed = null;
+    task.status = 'needsAction';
 
-    /* create the display entry for this task */
-    divTaskEntry(pItem, task, {});
+    /* function callback is inline to access local function namespace */
+    gapi.client.tasks.tasks.insert( {
+        'tasklist': taskList.id,
+        'resource': task} ).then(function(response) {
+            var newTask = response.result;
 
-    /* weave it into the list */
-    pList.append(pItem);
-    
-    /* cleanup */
-    input.val("");
+            /* update the cache */
+            taskData.addTask(newTask, tasklist);
+        
+            /* polish the ui */
+            var pItem = document.createElement('li');
+            pItem.classList.add('list-group-item');
+            pItem.id = newTask.id;
+
+            /* create the display entry for this task */
+            divTaskEntry(pItem, newTask);
+
+            /* weave it into the list */
+            pList.append(pItem);
+
+            /* cleanup */
+            input.val("");
+
+        });
 }
 
 /*
@@ -217,7 +315,7 @@ function dateTime_to_taskTime(dt, tt) {
 
 function uiTaskEditModal() {
     var listItem = $(this).closest('li');
-    var task = taskByID(listItem.attr('id'));
+    var task = taskData.taskByID(listItem.attr('id'));
 
     console.log("edit task: " + task.id + "  " + task.title);
     var modal = $("#gtdTaskEditModal");
@@ -243,15 +341,14 @@ function uiTaskEditModal() {
         notes.val(task.notes);
     }
     
-    console.log("before show");
     modal.modal('show');
-    console.log("after show");
 }
 
 function gtdEditModalOk() {
     console.log("ID: " + $("#gtdEditModalTaskID").val());
-    var task = taskByID($("#gtdEditModalTaskID").val());
+    var task = taskData.taskByID($("#gtdEditModalTaskID").val());
     var listInfo = $('#'+task.id).find('.gtd-task-label');
+    var taskList = taskData.taskListFromTaskID(task.id);
 
     var notes = $("#gtdEditModalNotes").val();
     if (notes && notes != "") {
@@ -277,16 +374,22 @@ function gtdEditModalOk() {
     gtdEditModalHide();
     
     /* eventually write back to google */
+    gapi.client.tasks.tasks.update({
+        'tasklist': taskList.id,
+        'task': task.id,
+        'resource': task
+    }).then(gapi_console_logger);
+
 }
 
 function uiTaskDrag(event, ui) {
     var dragItem = ui.item;
-    var dragTask = taskByID(dragItem.attr('id'));
+    var dragTask = taskData.taskByID(dragItem.attr('id'));
     var startPanel = $(this).closest('.panel');
-    var startTaskList = taskListByID(startPanel.attr('id'));
+    var startTaskList = taskData.taskListByID(startPanel.attr('id'));
     
     var targetPanel = dragItem.closest('.panel');
-    var targetTaskList = taskListByID(targetPanel.attr('id'));
+    var targetTaskList = taskData.taskListByID(targetPanel.attr('id'));
 
     console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
     
@@ -302,7 +405,7 @@ function uiTaskDrag(event, ui) {
 
 function uiTaskNext(e) {
     var listItem = $(this).closest('li');
-    var task = taskByID(listItem.attr('id'));
+    var task = taskData.taskByID(listItem.attr('id'));
 
     /* TO-DO: update data to reflect that this is a 'next-task' */
     
@@ -311,12 +414,27 @@ function uiTaskNext(e) {
     this.classList.toggle('fa-star');
 }
 
+function gapi_console_logger(result) {
+    console.log(JSON.stringify(result));
+}
+
 function uiTaskCompleted(e) {
     var listItem = $(this).closest('li');
-    var task = taskByID(listItem.attr('id'));
+    var task = taskData.taskByID(listItem.attr('id'));
+    var taskList = taskData.taskListFromTaskID(task.id);
     
     /* tag the task as complete */
-    task.completed = !task.completed;
+    console.log("statusA: " + task.status);
+    if (task.status != 'completed') {
+        task.status = 'completed';
+        var dt = new Date();
+        task.completed = dt.toISOString();
+    }
+    else {
+        task.status = 'needsAction';
+        task.completed = null;
+    }
+    console.log("statusB: " + task.status);
 
     /* switch out the icon */
     //this.classList.toggle('fa-square-o');
@@ -326,6 +444,13 @@ function uiTaskCompleted(e) {
     
     /* track the text and rub it out */
     listItem.find('.gtd-task-label').toggleClass('gtd-completed');
+    
+    /* update Google entry */
+    gapi.client.tasks.tasks.patch({
+        'tasklist': taskList.id,
+        'task': task.id,
+        'resource': { 'status': task.status, 'completed': task.completed }
+    }).then(gapi_console_logger);
 }
 
 function divTaskEntry(pItem, task) {
@@ -336,7 +461,7 @@ function divTaskEntry(pItem, task) {
 
     /* get parent depth */
     while (cur.hasOwnProperty('parent')) {
-        cur = taskByID(cur.parent);
+        cur = taskData.taskByID(cur.parent);
         pd++;
     }
     //console.log("Task: " + task.title + " parentage: " + pd);
@@ -427,7 +552,7 @@ function taskListPanel(taskList) {
     var pComp = createPanel(taskList.title, "Footer Text", taskList.id);
     panelInfo.panel = pComp.panel;
     
-    tasks = tData['tasks'][taskList.id];
+    tasks = taskData.tasksByTaskListID(taskList.id);
     
     for (tIdx in tasks) {
         task = tasks[tIdx];
@@ -458,7 +583,9 @@ function taskListPanel(taskList) {
     sb.appendChild(pComp.panel);
     panelInfo.height = pComp.panel.clientHeight;
     panelInfo.width = pComp.panel.clientWidth;
-    console.log(taskList.title + ": sandbox: " + pComp.panel.clientWidth + " x " + pComp.panel.clientHeight);
+    
+    //DEBUG console.log(taskList.title + ": sandbox: " + pComp.panel.clientWidth + " x " + pComp.panel.clientHeight);
+    
     sb.removeChild(pComp.panel);
 
     if (panelInfo.height <= window.innerHeight)
@@ -485,16 +612,16 @@ function renderTasks() {
     ti = taskLists.findIndex(function(element) {
         return element.title == 'Next-Tasks';
     })
-    console.log("  next-tasks idx = " + ti);
+    
     if (ti >= 0)
         nextTL = taskLists.splice(ti,1)[0];
 
     /* arrange the block shortest to tallest */
     taskLists.sort(function(a, b){
-        var lenA = tData['tasks'][a.id].length;
-        var lenB = tData['tasks'][b.id].length;
-        if(lenA < lenB) return -1;
-        if(lenA > lenB) return 1;
+        var lenA = taskData.taskListByID(a.id).length;
+        var lenB = taskData.taskListByID(b.id).length;
+        if (lenA < lenB) return -1;
+        if (lenA > lenB) return 1;
         return 0;
     });
 
@@ -641,7 +768,7 @@ function checkSizes() {
                 $(window).width(), $(window).height());
     
     var idx, tl, panel;
-    var taskLists = dupTasksList();
+    var taskLists = taskData.getTaskLists();
     
     for (idx in taskLists) {
         tl = taskLists[idx];
@@ -678,23 +805,126 @@ function resizePage() {
  *
  ***************************************************************************************/
 
-//var google = require('googleapis');
-//var googleAuth = require('google-auth-library');
+// Client ID and API key from the Developer Console
+var CLIENT_ID = '276059749769-fv7rj6tn4lot7ispmr5udorskla6fbuc.apps.googleusercontent.com';
+var CLIENT_SECRET = 'Lbta6k0-4kBHfnyPUmDijNjF';
 
-//var OAuth2 = google.auth.OAuth2;
-//var oauth2Client = new OAuth2(
-//    "1068589952324-nikjd3ars2pghcbim00gsefn9r9inkso.apps.googleusercontent.com",
-//    "SreSsnWOMEB2QjjI9Ap366M-",
-//    "http://localhost"
-//);
+// Array of API discovery doc URLs for APIs used by the quickstart
+var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/tasks/v1/rest"];
 
-// set auth as a global default
-//google.options({
-//  auth: oauth2Client
-//});
+// Authorization scopes required by the API; multiple scopes can be
+// included, separated by spaces.
+var SCOPES = 'https://www.googleapis.com/auth/tasks';
 
-//var googleTasks = google.tasks({
-//    version: 'v2',
-//    auth: oauth2Client
-//});
+var authorizeButton = document.getElementById('authorize-button');
+var jsonButton = document.getElementById('json-button');
 
+/**
+*  On load, called to load the auth2 library and API client library.
+*/
+function handleClientLoad() {
+    gapi.load('client:auth2', initClient);
+}
+
+/**
+*  Initializes the API client library and sets up sign-in state
+*  listeners.
+*/
+function initClient() {
+    gapi.client.init({
+        discoveryDocs: DISCOVERY_DOCS,
+        clientId: CLIENT_ID,
+        scope: SCOPES
+    }).then(function () {
+        // Listen for sign-in state changes.
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+        // Handle the initial sign-in state.
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        authorizeButton.onclick = handleAuthClick;
+        jsonButton.onclick = handleJsonClick;
+    });
+}
+
+/**
+*  Called when the signed in status changes, to update the UI
+*  appropriately. After a sign-in, the API is called.
+*/
+function updateSigninStatus(isSignedIn) {
+    if (isSignedIn) {
+        authorizeButton.innerHTML = 'Sign Out'
+        loadData();
+    } else {
+        authorizeButton.innerHTML = 'Authorize'
+    }
+}
+
+/**
+*  Sign in/out the user upon button click.
+*/
+function handleAuthClick(event) {
+    if (authorizeButton.innerHTML == 'Authorize')
+        gapi.auth2.getAuthInstance().signIn();
+    else
+        gapi.auth2.getAuthInstance().signOut();
+}
+
+/**
+*  Manage the JSON button
+*/
+function handleJsonClick(event) {
+    if (taskData.loaded()) {
+        var blob = new Blob(
+            [ JSON.stringify(taskData) ],
+            { type: "application/json;charset=utf-8"}
+        );
+        saveAs(blob, "data.json");              
+    }
+    else {
+        console.log("Not complete yet...")
+    }
+}
+
+/*
+ * Loading support
+ */
+
+function loadTasksCache(response) {
+    tasks = response.result.items;
+
+    /* add an index so we can lookup a taskList from a task.id */
+    for (var ti in tasks)
+        taskData.addTask(tasks[ti], this);
+    
+    /* record that this list is loaded */
+    taskData._lists_loaded += 1;
+
+    /* whichever set of tasks is last to be added triggers the initial render */
+    if (taskData.loaded()) {
+        gtdTaskPreferences.taskLists = taskData.getTaskLists();
+        renderTasks();
+    }
+}
+
+function loadTaskListsCache(response) {
+    for (var idx in response.result.items) {
+        var tl = response.result.items[idx];
+        
+        /* add the tasklist to the cache first */
+        taskData.addTaskList(tl);
+        
+        gapi.client.tasks.tasks.list({'tasklist': tl.id}).then(
+            loadTasksCache, handleTasksError, tl
+        );
+    }
+}
+
+function loadData() {
+    gapi.client.tasks.tasklists.list({
+        'maxResults': 100
+    }).then(loadTaskListsCache);
+}
+
+function handleTasksError(reason) {
+    console.log("problem collecting tasks for " + this.title);
+}

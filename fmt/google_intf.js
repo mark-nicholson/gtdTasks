@@ -9,7 +9,7 @@ var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/tasks/v1/res
 
 // Authorization scopes required by the API; multiple scopes can be
 // included, separated by spaces.
-var SCOPES = 'https://www.googleapis.com/auth/tasks.readonly';
+var SCOPES = 'https://www.googleapis.com/auth/tasks';
 
 var authorizeButton = document.getElementById('authorize-button');
 var jsonButton = document.getElementById('json-button');
@@ -68,9 +68,9 @@ function handleAuthClick(event) {
 *  Manage the JSON button
 */
 function handleJsonClick(event) {
-    if (tData['taskLists'].length == Object.keys(tData['tasks']).length) {
+    if (taskData.loaded()) {
         var blob = new Blob(
-            [ JSON.stringify(tData) ],
+            [ JSON.stringify(taskData) ],
             { type: "application/json;charset=utf-8"}
         );
         saveAs(blob, "data.json");              
@@ -83,30 +83,30 @@ function handleJsonClick(event) {
 /*
  * Loading support
  */
-var tData = {
-  'taskLists': [],
-  'tasks': {}
-}
 
 function loadTasksCache(response) {
     tasks = response.result.items;
-    tData['tasks'][this.id] = tasks;
-    //json_when_complete();
-    
+
+    /* add an index so we can lookup a taskList from a task.id */
+    for (var ti in tasks)
+        taskData.addTask(tasks[ti], this);
+
     /* whichever set of tasks is last to be added triggers the initial render */
-    if (tData['taskLists'].length == Object.keys(tData['tasks']).length) {
+    if (taskData.loaded) {
         
-        gtdTaskPreferences.taskLists = dupTasksList();
+        gtdTaskPreferences.taskLists = taskData.getTaskLists();
         
         renderTasks();
     }
 }
 
 function loadTaskListsCache(response) {
-    tData['taskLists'] = response.result.items;
-
-    for (var idx in tData['taskLists']) {
-        var tl = tData['taskLists'][idx];
+    for (var idx in response.result.items) {
+        var tl = response.result.items[idx];
+        
+        /* add the tasklist to the cache first */
+        taskData.addTaskList(tl);
+        
         gapi.client.tasks.tasks.list({'tasklist': tl.id}).then(
             loadTasksCache, handleTasksError, tl
         );
@@ -114,47 +114,11 @@ function loadTaskListsCache(response) {
 }
 
 function loadData() {
-    console.log("Load Data - Begin");
     gapi.client.tasks.tasklists.list({
         'maxResults': 100
     }).then(loadTaskListsCache);
-    console.log("Load Data - End");
 }
 
 function handleTasksError(reason) {
     console.log("problem collecting tasks for " + this.title);
 }
-
-
-/**
-* Append a pre element to the body containing the given message
-* as its text node. Used to display the results of the API call.
-*
-* @param {string} message Text to be placed in pre element.
-*/
-/*function appendPre(message) {
-    var pre = document.getElementById('content');
-    var textContent = document.createTextNode(message + '\n');
-    pre.appendChild(textContent);
-}*/
-
-/**
-* Print task lists.
-*/
-/*function listTaskLists() {
-gapi.client.tasks.tasklists.list({
-    'maxResults': 10
-}).then(function(response) {
-  appendPre('Task Lists:');
-  var taskLists = response.result.items;
-  if (taskLists && taskLists.length > 0) {
-    for (var i = 0; i < taskLists.length; i++) {
-      var taskList = taskLists[i];
-      appendPre(taskList.title + ' (' + taskList.id + ')');
-    }
-  } else {
-    appendPre('No task lists found.');
-  }
-});
-}*/
-
