@@ -69,6 +69,7 @@
         <input type="checkbox" id="gtdPrefsModalIncludeDone">
           Include Completed Tasks
         </input>
+        <input type="number" min="0" id="gtdPrefsModalRefresh">Refresh Interval (minutes)</input>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal" onclick="gtdPrefsModalOk()">Ok</button>
@@ -81,6 +82,8 @@
     $('#gtdPrefsModal').on('show.bs.modal', gtdPrefsModalShow);
     function gtdPrefsModalShow() {
         taskListsSelectionList('gtdPrefsModalTaskLists');
+        $("#gtdPrefsModalRefresh").val(taskData._pref_refresh_interval);
+        document.getElementById("gtdPrefsModalIncludeDone").checked = taskData._pref_includeCompleted;
     }
     function gtdPrefsModalOk() {
         var ul, idx;
@@ -89,6 +92,8 @@
         cb = document.getElementById("gtdPrefsModalIncludeDone");
         taskData._pref_includeCompleted = cb.checked;
         taskData._pref_taskLists = [];
+        
+        taskData.updateRefresh( $("#gtdPrefsModalRefresh").val() );
         
         ul = $("#gtdPrefsModalTaskLists");
         for (idx in ul.children()) {

@@ -13,8 +13,33 @@ class TaskData {
         /* preferences */
         this._pref_taskLists = [];
         this._pref_includeCompleted = false;
+        this._pref_refresh_interval = 0;  // minutes
+        
+        this._updateTimer = null;
     }
-    
+
+    /*
+     * Add update timer for a forced update every 10 minutes
+     */
+    updateRefresh(newRefresh) {
+        
+        /* nothing to do? bail... */
+        if (newRefresh == taskData._pref_refresh_interval)
+            return;
+
+        /* shut down any previous timer */
+        if (this._updateTimer) {
+            window.clearInterval(this._updateTimer);
+            this._updateTimer = null;
+        }
+        
+        /* remember the value */
+        this._pref_refresh_interval = newRefresh;
+        
+        if (this._pref_refresh_interval > 0)
+            this._updateTimer = setInterval(loadData, this._pref_refresh_interval * 60 * 1000);
+    }
+
     loaded() {
         return Object.keys(this._taskLists).length == this._lists_loaded;
     }
@@ -42,8 +67,6 @@ class TaskData {
         for (var idx in localTL)
             this.removeTask(localTL[idx]);
 
-        console.log("removeTaskList(): " + tl.title + "  " + tl.id);
-
         /* remove the tasklist from the cache buckets */
         delete this._taskLists[tl.id];
         delete this._tasks_by_tasklist[tl.id]
@@ -53,7 +76,6 @@ class TaskData {
             return item.id == tl.id;
         });
         if (idx >= 0) {
-            console.log("removeTaskList() removing in _prefs at " + idx);
             this._pref_taskLists.splice(idx,1);
         }
     }
@@ -202,10 +224,7 @@ function taskListsSelectionList(divID) {
 }
 
 function uiNewTaskListOk() {
-    var name = $('#gtdNewTaskListName').val();
-    
-    console.log("uiNewTaskListOk() " + name);
-    
+    var name = $('#gtdNewTaskListName').val();    
     var tasklist = {
         'title': name
     }
@@ -228,11 +247,9 @@ function uiDeleteTaskList(e) {
     var tasksArea = document.getElementById('tasksArea');
 
     /* add ARE YOU SURE modal... */
-    console.log("deleteTaskList('" + taskList.title + "' [" + taskList.id + "])");
 
     /* update google and the local cache */
     gapi.client.tasks.tasklists.delete( {'tasklist': taskList.id} ).then(function(response) {
-        console.log("callback from uiDeleteTaskList: " + taskList.title + "  " + taskList.id);
         taskData.removeTaskList(taskList);
     });
     
@@ -367,8 +384,6 @@ function dateTime_to_taskTime(dt, tt) {
 function uiTaskEditModal() {
     var listItem = $(this).closest('li');
     var task = taskData.taskByID(listItem.attr('id'));
-
-    console.log("edit task: " + task.id + "  " + task.title);
     var modal = $("#gtdTaskEditModal");
     
     var title = $("#gtdEditModalTitle");
@@ -387,7 +402,6 @@ function uiTaskEditModal() {
     }
     
     if (task.hasOwnProperty('notes')) {
-        console.log("Notes: " + task.notes);
         var notes = $("#gtdEditModalNotes");
         notes.val(task.notes);
     }
@@ -396,7 +410,6 @@ function uiTaskEditModal() {
 }
 
 function gtdEditModalOk() {
-    console.log("ID: " + $("#gtdEditModalTaskID").val());
     var task = taskData.taskByID($("#gtdEditModalTaskID").val());
     var listInfo = $('#'+task.id).find('.gtd-task-label');
     var taskList = taskData.taskListFromTaskID(task.id);
@@ -410,9 +423,6 @@ function gtdEditModalOk() {
     var dueDate = $("#gtdEditModalDate").val();
     var dueTime = $("#gtdEditModalTime").val();
     if (dueDate && dueDate != "") {
-        console.log("Due Date: " + dueDate);
-        console.log("Due Time: " + dueTime);
-        
         task.due = dateTime_to_taskTime(dueDate, dueTime);
         
         var dueBlock = listInfo.find('.gtd-task-due-date');
@@ -461,9 +471,8 @@ function uiTaskDrag(event, ui) {
     var targetPanel = dragItem.closest('.panel');
     var targetTaskList = taskData.taskListByID(targetPanel.attr('id'));
 
-    console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
-    
-    console.log("ui.item.index(" + dragItem.index() + ")");
+    //console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
+    //console.log("ui.item.index(" + dragItem.index() + ")");
 
     var params = {
         'task': dragTask.id,
@@ -509,7 +518,6 @@ function uiTaskCompleted(e) {
     var taskList = taskData.taskListFromTaskID(task.id);
     
     /* tag the task as complete */
-    console.log("statusA: " + task.status);
     if (task.status != 'completed') {
         task.status = 'completed';
         var dt = new Date();
@@ -519,7 +527,6 @@ function uiTaskCompleted(e) {
         task.status = 'needsAction';
         task.completed = null;
     }
-    console.log("statusB: " + task.status);
 
     /* switch out the icon */
     //this.classList.toggle('fa-square-o');
@@ -690,9 +697,9 @@ function renderTasks() {
     /* always have next-tasks first */
     taskLists = taskData._pref_taskLists;
 
-    for (ti in taskLists){
-        console.log("got: " + taskLists[ti].title);
-    }
+    //for (ti in taskLists){
+    //    console.log("got: " + taskLists[ti].title);
+    //}
 
     ti = taskLists.findIndex(function(element) {
         return element.title == 'Next-Tasks';
@@ -703,7 +710,6 @@ function renderTasks() {
 
     /* arrange the block shortest to tallest */
     taskLists.sort(function(a, b){
-        console.log("A:" + a.id + "  B:" + b.id);
         var lenA = taskData.taskListByID(a.id).length;
         var lenB = taskData.taskListByID(b.id).length;
         if (lenA < lenB) return -1;
@@ -721,7 +727,6 @@ function renderTasks() {
     
     /* setup the next task div */
     if (nextTL) {
-        console.log("cooking up nextTL panel");
         item = taskListPanel(nextTL);
         panelInfo.push(item);
     }
@@ -735,7 +740,6 @@ function renderTasks() {
     
     /* lay them out so the screen can identify their true size */
     standardLayout(tasksArea, panelInfo);
-    console.log("After Layout");
     checkSizes();
     
     /* re-arrange the panels to be best fit */
@@ -800,7 +804,7 @@ function optimizeLayout(tasksArea, panelInfo) {
                     nextPanel = getBestTL(colPx, panelInfo);
 
                 if (!nextPanel) {
-                    console.log("filled this column")
+                    //console.log("filled this column")
                     break;
                 }
 
@@ -1016,3 +1020,6 @@ function loadData() {
 function handleTasksError(reason) {
     console.log("problem collecting tasks for " + this.title);
 }
+
+/* setup the initial refresh timer... */
+taskData.updateRefresh(10);
