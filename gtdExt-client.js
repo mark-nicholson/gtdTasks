@@ -1,13 +1,62 @@
 
 function gtdButtonClick () {
     console.log("GTD: button clicked!");
+
     chrome.runtime.sendMessage(
-	{appName: "gtdGtasks", update: true},
+	//{appName: "gtdGtasks", update: true, action: "update"},
+	{appName: "gtdGtasks", action: "getTaskLists"},
+	function(response) {
+	    if (!response) {
+		console.log("response argument is null");
+		return;
+	    }
+	    var keys = Object.keys(response);
+	    for (var k in keys) {
+		console.log("--- response." + k + " = " + keys[k]);
+	    }
+	    
+	    console.log("click: got response: " + response.msg);
+	    if (response.error != "" ) {
+		console.log("[gBC] error received: " + response.error);
+		return;
+	    }
+	    if (!response.items || response.items.length <= 0) {
+		console.log("[gBC] no items returned");
+		return;
+	    }
+	    logTaskLists(response);
+	}
+    );
+    console.log("GTD: msg done");
+}
+
+function gtdPrintButtonClick () {
+    console.log("GTD: print button clicked!");
+    chrome.runtime.sendMessage(
+	{appName: "gtdGtasks", update: false, action: "print"},
 	function(response) {
 	    console.log("click: got response: " + response.msg);
 	}
     );
     console.log("GTD: msg done");
+}
+
+function logTaskLists(response) {
+    console.log("logTaskLists: entry");
+
+    var taskLists = response.items;
+
+    //g_taskLists = response.items;
+
+    if (taskLists && taskLists.length > 0) {
+	for (var i = 0; i < taskLists.length; i++) {
+	    var tl = taskLists[i];
+	    console.log("list[" + i + "]: " + tl.title);
+	}
+    }
+    else {
+	console.log("No task lists found");
+    }
 }
 
 function createGoogleToolbarButton(title, callback) {
@@ -67,6 +116,30 @@ function getGoogleToolbar(contentDoc) {
     return toolbarDiv;
 };
 
+function loadScript(scriptName, callback) {
+    var scriptEl = document.createElement('script');
+    console.log("[LS] loading: " + scriptName);
+    scriptEl.src = scriptName;
+    scriptEl.async = true;
+    scriptEl.defer = true;
+    scriptEl.addEventListener(
+	'onload', "this.onload=function(){};loadClient()");
+    scriptEl.addEventListener(
+	'onreadystatechange',
+	"if (this.readyState === 'complete') this.onload()");
+    
+    if (!scriptName.includes("://")) {
+	scriptEl.src = chrome.extension.getURL('lib/' + scriptName + '.js');
+    }
+    if (callback) {
+	scriptEl.addEventListener('load', callback, false);
+    }
+    document.head.appendChild(scriptEl);
+    console.log("[LS] done");
+}
+
+var gapiLoaded = false;
+
 /*
  * This enclosing function provides some sort of page context.
  */
@@ -75,6 +148,11 @@ function getGoogleToolbar(contentDoc) {
     var iFrame = document.querySelector('iframe');
 
     console.log("GTD: enter");
+
+    if (!gapiLoaded) {
+	loadScript('https://apis.google.com/js/api.js', null);
+	gapiLoaded = true;
+    }
 
     /* wait until the table is set */
     if (iFrame == null 
@@ -90,9 +168,10 @@ function getGoogleToolbar(contentDoc) {
 
     var toolbarDiv = getGoogleToolbar(contentDocument);
     if (toolbarDiv) {
-	var newButton = createGoogleToolbarButton("GTD", gtdButtonClick);
-    
-	toolbarDiv.appendChild(newButton);
+	var gtdBt = createGoogleToolbarButton("GTD", gtdButtonClick);
+	toolbarDiv.appendChild(gtdBt);
+	var gtdPrBt = createGoogleToolbarButton("gtdPrint", gtdPrintButtonClick);
+	toolbarDiv.appendChild(gtdPrBt);
     }
     
     console.log("GDT: done");
