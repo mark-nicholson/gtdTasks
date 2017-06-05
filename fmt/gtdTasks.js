@@ -906,8 +906,6 @@ var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/tasks/v1/res
 // included, separated by spaces.
 var SCOPES = 'https://www.googleapis.com/auth/tasks';
 
-var authorizeButton = document.getElementById('authorize-button');
-var jsonButton = document.getElementById('json-button');
 
 /**
 *  On load, called to load the auth2 library and API client library.
@@ -931,8 +929,6 @@ function initClient() {
 
         // Handle the initial sign-in state.
         updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        authorizeButton.onclick = handleAuthClick;
-        jsonButton.onclick = handleJsonClick;
     });
 }
 
@@ -941,6 +937,8 @@ function initClient() {
 *  appropriately. After a sign-in, the API is called.
 */
 function updateSigninStatus(isSignedIn) {
+    var authorizeButton = document.getElementById('authorize-button');
+
     if (isSignedIn) {
         authorizeButton.innerHTML = 'Sign Out'
         loadData();
