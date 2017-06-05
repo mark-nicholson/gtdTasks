@@ -938,7 +938,6 @@ function initClient() {
 */
 function updateSigninStatus(isSignedIn) {
     var authorizeButton = document.getElementById('authorize-button');
-
     if (isSignedIn) {
         authorizeButton.innerHTML = 'Sign Out'
         loadData();
@@ -951,6 +950,7 @@ function updateSigninStatus(isSignedIn) {
 *  Sign in/out the user upon button click.
 */
 function handleAuthClick(event) {
+    var authorizeButton = document.getElementById('authorize-button');
     if (authorizeButton.innerHTML == 'Authorize')
         gapi.auth2.getAuthInstance().signIn();
     else
