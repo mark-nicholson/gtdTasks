@@ -552,7 +552,7 @@ function divTaskEntry(pItem, task) {
     var cur = task;
 
     /* get parent depth */
-    while (cur.hasOwnProperty('parent')) {
+    while (cur && cur.hasOwnProperty('parent')) {
         cur = taskData.taskByID(cur.parent);
         pd++;
     }
