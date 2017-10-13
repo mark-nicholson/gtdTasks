@@ -395,7 +395,7 @@ function uiTaskEditModal() {
     var modal = $("#gtdTaskEditModal");
     
     var title = $("#gtdEditModalTitle");
-    title.html("Edit Task - " + task.title);
+    title.val(task.title);
     
     var taskID = $("#gtdEditModalTaskID");
     taskID.val(task.id);
@@ -421,6 +421,12 @@ function gtdEditModalOk() {
     var task = taskData.taskByID($("#gtdEditModalTaskID").val());
     var listInfo = $('#'+task.id).find('.gtd-task-label');
     var taskList = taskData.taskListFromTaskID(task.id);
+
+    var title = $("#gtdEditModalTitle").val();
+    if (title && title != "") {
+        task.title = title;
+        listInfo.find('.gtd-task-title').html(title);
+    }
 
     var notes = $("#gtdEditModalNotes").val();
     if (notes && notes != "") {

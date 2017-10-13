@@ -187,10 +187,13 @@
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title" id="gtdEditModalTitle">Edit Task</h4>
+        <h4 class="modal-title" id="gtdEditModalHeader">Edit Task</h4>
       </div>
       <div class="modal-body form-group">
-          <input type='hidden' id="gtdEditModalTaskID" value=""></input>
+        <label for="gtdEditModalTitle">Title:</label>
+        <input type='text' id="gtdEditModalTitle" class="form-control"></input>
+        <p></p>
+        <input type='hidden' id="gtdEditModalTaskID" value=""></input>
         <label for="gtdEditModalDate">Due Date:</label>
         <input type="date" id="gtdEditModalDate"></input>
         <label for="gtdEditModalTime">Time:</label>
@@ -213,7 +216,7 @@
     function gtdEditModalHide() {
         /* restore it back to a clean state */
         console.log("gtdEditModalHide()");
-        $("#gtdEditModalTitle").html("Edit Task");
+        $("#gtdEditModalTitle").val("");
         $("#gtdEditModalTaskID").value = "null";
         $("#gtdEditModalDate").val(null);
         $("#gtdEditModalNotes").val("");
