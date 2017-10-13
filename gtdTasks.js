@@ -39,6 +39,14 @@ class TaskData {
         if (this._pref_refresh_interval > 0)
             this._updateTimer = setInterval(loadData, this._pref_refresh_interval * 60 * 1000);
     }
+    
+    clearTasksCache() {
+        this._taskLists = {};             // all taskslists by id
+        this._tasks = {};                 // all tasks by id
+        this._tasks_by_tasklist = {};     // all tasks per task list
+        this._lists_loaded = 0;        
+        this._pref_taskLists = [];
+    }
 
     loaded() {
         return Object.keys(this._taskLists).length == this._lists_loaded;
@@ -1008,7 +1016,7 @@ function loadTaskListsCache(response) {
 
 function loadData() {
     /* reset so the population can trigger a refresh */
-    taskData._lists_loaded = 0;
+    taskData.clearTasksCache();
     
     gapi.client.tasks.tasklists.list({
         'maxResults': 100
