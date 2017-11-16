@@ -17,7 +17,7 @@
 
 <body id='gtdBody'>
 
-    <nav class="navbar navbar-default">
+    <nav class="navbar navbar-default navbar-fixed-top">
       <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
@@ -41,6 +41,8 @@
                 <li><a onclick="loadData()" href="#">Refresh</a></li>
                 <li><a onclick="handleJsonClick()" id="json-button" href="#">JSON</a></li>
                 <li><a onclick="checkSizes()" href="#">Sizes</a></li>
+                <li><a onclick="indentActiveItems(true)" href="#">Indent</a></li>
+                <li><a onclick="indentActiveItems(false)" href="#">Outdent</a></li>
                 <li role="separator" class="divider"></li>
                 <li><a data-toggle="modal" data-target="#gtdPrefsModal" href="#">Preferences</a></li>
               </ul>

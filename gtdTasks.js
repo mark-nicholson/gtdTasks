@@ -49,6 +49,7 @@ class TaskData {
     }
 
     loaded() {
+        console.log("loaded() " + Object.keys(this._taskLists).length + " : " + this._lists_loaded);
         return Object.keys(this._taskLists).length == this._lists_loaded;
     }
     
@@ -326,12 +327,147 @@ function createPanel(title, footer, id) {
     return { panel: panel, body: pBody, list: pList, footer: pFoot };
 }
 
+/*
+ * Locate 'active' list items and indent or outdent them as needed
+ */
+function indentActiveItems(indent) {
+    var area = document.getElementById('tasksArea');
+    var items = $(area).find('li.active');
+    //var items = document.getElementsByClassName('li.active');
+    
+    console.log("got: " + indent);
+    
+    /* skip errant calls */
+    if (items.length == 0) {
+        console.log("No items selected for indent.")
+        return;
+    }
+    
+    //items
+    
+    /* grab the parent entry 
+       -- we're assuming a contiguous set of selections with a single parent target */
+    var parentItem = items[0].previousSibling;
+    if (! parentItem) {
+        console.log("Selected items have no preceding entry to make a parent.");
+        return;
+    }
+    
+    var parentTask = taskData.taskByID(parentItem.id);
+    var taskList = taskData.taskListFromTaskID(parentTask.id);
+    var indentLevel = 0;
+    var cur = parentTask;
+    
+    /* get parent depth */
+    while (cur && cur.hasOwnProperty('parent')) {
+        cur = taskData.taskByID(cur.parent);
+        indentLevel++;
+    }
+
+    console.log("Parent Item: " + parentTask.title + " (" + indentLevel + ")");
+    console.log(parentTask);
+    
+    if (indent)
+        indentLevel++;
+    
+    console.log("Indent Level:  " + indentLevel);
+    
+    /* kind of annoying, but these lists are helpful - really need list slicing like python. */
+    var indentList = [
+        'gtd-task-indent-0',
+        'gtd-task-indent-1',
+        'gtd-task-indent-2',
+        'gtd-task-indent-3',
+        'gtd-task-indent-4'
+    ];
+    var labelList = [
+        'gtd-task-label-0',
+        'gtd-task-label-1',
+        'gtd-task-label-2',
+        'gtd-task-label-3',
+        'gtd-task-label-4'
+    ];
+
+    var previousTask = parentTask;
+    
+    /* iterate through each one and adjust its nesting */
+    for (var idx = 0; idx < items.length; idx++) {
+        var item = items[idx];
+        var task = taskData.taskByID(item.id);
+        console.log("Selected Task: " + task.title);
+        console.log(task);
+        
+        /*
+         * spacing is controlled by TWO classes.  Fetch each item and tweak it.
+         */
+        var spacer = $(item).find('.fa-square-o');
+        var label = $(item).find('.gtd-task-label');
+        
+        /* figure out the indent-class used */
+        var indentIdx;
+        for (indentIdx in indentList) {
+            if (spacer.hasClass(indentList[indentIdx]))
+                break;
+        }
+
+        /* remove the previous formatting */
+        spacer.removeClass(indentList[indentIdx]);
+        label.removeClass(labelList[indentIdx]);
+        
+        /* migrate the indent accordingly */
+        if (indent) {
+            indentIdx++;
+            if (indentIdx > 4)    // maxes out
+                indentIdx = 4;
+        }
+        else {
+            indentIdx--;
+            if (indentIdx < 0)     // floors
+                indentIdx = 0;
+        }
+        
+        /* adjust the classes */
+        spacer.addClass(indentList[indentIdx]);
+        label.addClass(labelList[indentIdx]);
+                
+        /* set the task's parent to the new parent */
+        task.parent = parentTask.id;
+        console.log(task);
+
+	params = {
+	    'tasklist': taskList.id,
+	    'task': task.id
+	};
+	//params['previous'] = previousTask.id
+	params['parent'] = parentTask.id
+
+        gapi.client.tasks.tasks.move(params).then(gapi_console_logger);
+
+        /* push it up to the cloud 
+        gapi.client.tasks.tasks.move({
+            'tasklist': taskList.id,
+            'task': task.id,
+	    'parent': parentTask.id,
+	    'previous': previousTask.id */
+            /*'resource': { 'parent': parentTask.id, 'previous': previousTask.id } 
+        }).then(gapi_console_logger); */
+   
+        previousTask = task;
+    }
+
+}
+
+
 function uiTaskAdd(e) {
     
-    /* accept mouse clicks (keycode==undefined) and 'enter' */
-    if (e.keyCode && e.keyCode != 13)
+    /* ignore mouse clicks */
+    if (! e.keyCode)
+        return;
+                
+    if (e.keyCode != 13)
         return;
     
+    /* do this on ENTER */
     var panel = $(this).closest('.panel');
     var taskList = taskData.taskListByID(panel.attr('id'));
     var input = panel.find('.gtd-add-task');
@@ -675,6 +811,14 @@ function taskListPanel(taskList) {
         pItem = document.createElement('li');
         pItem.classList.add('list-group-item');
         pItem.id = task.id;
+        pItem.onclick = function(e) {
+            e.preventDefault();
+            //console.log("Got a list-item click");
+            //console.log(e);
+            //$(this).parent().find('li').removeClass('active');
+            //this.classList.add('active');
+            this.classList.toggle('active');
+        };
 
         /* create the display entry for this task */
         divTaskEntry(pItem, task);
