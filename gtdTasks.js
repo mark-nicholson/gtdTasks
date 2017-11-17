@@ -308,6 +308,25 @@ function taskListsSelectionList(divID) {
     }
 }
 
+function uiSetAlert(htmlMsg, level) {
+    var alertDiv = document.getElementById('alertArea');
+    var closer = document.createElement('A');
+    var message = document.createElement('P');
+
+    message.innerHTML = htmlMsg;
+    message.style.textAlign = "center";
+
+    closer.href = '#';
+    closer.innerHTML = "&times;";
+    closer.classList.add('close');
+    closer.setAttribute('data-dismiss', 'alert');
+    closer.setAttribute('aria-label', 'close');
+
+    alertDiv.appendChild(closer);
+    alertDiv.appendChild(message);
+    alertDiv.classList.add('alert', level, 'alert-dismissable');
+}
+
 function uiNewTaskListOk() {
     var name = $('#gtdNewTaskListName').val();    
     var params = {
@@ -327,7 +346,12 @@ function uiNewTaskListOk() {
             /* re-render the page -- should create the new panel */
             renderTasks();
 	},
-	gapi_task_response_error
+	function(response) {
+	    uiSetAlert(
+		"<strong>Error</strong> - Failed to create new task-list",
+		'alert-danger'
+	    );
+	}
     );
 }
 
@@ -348,7 +372,12 @@ function uiDeleteTaskList(e) {
 	    /* remove the panel itself */
 	    panel.remove();
 	},
-	gapi_console_logger
+	function(response) {
+	    uiSetAlert(
+		"<strong>Error!</strong> - Failed to delete task-list",
+		'alert-danger'
+	    );
+	}
     );
 }
 
@@ -529,7 +558,13 @@ function indentActiveItems(indent) {
 
         gapi.client.tasks.tasks.move(params).then(
 	    gapi_task_response_ok,
-	    gapi_task_response_error
+	    function(response) {
+		gapi_task_response_error(response);
+		uiSetAlert(
+		    "<strong>Error</strong> - Failed to create new task-list",
+		    'alert-danger'
+		);
+	    }
 	);
 
         /* push it up to the cloud 
@@ -595,7 +630,12 @@ function uiTaskAdd(e) {
 	    input.val("");
 	    
         },
-	gapi_task_response_error
+	function(response) {
+	    uiSetAlert(
+		"<strong>Error!</strong> - Failed to create new task",
+		'alert-danger'
+	    );
+	}
     );
 }
 
@@ -669,7 +709,12 @@ function gtdEditModalOk() {
 		taskData.removeTask(task);   /* remove cache copy */
 		taskItem.remove();           /* remove UI entry */
 	    },
-	    gapi_console_logger
+	    function(response) {
+		uiSetAlert(
+		    "<strong>Error!</strong> - Failed to delete task",
+		    'alert-danger'
+		);
+	    }
 	);
 
 	/* clean up */
@@ -717,8 +762,12 @@ function gtdEditModalOk() {
 		dueBlock.show();
 	    }
 	},
-	gapi_task_response_error,
-	null  /* context -- exists in routines a 'this' */
+	function(response) {
+	    uiSetAlert(
+		"<strong>Error!</strong> - Failed to update task",
+		'alert-danger'
+	    );
+	}
     );
 
 }
@@ -762,7 +811,13 @@ function uiTaskDrag(event, ui) {
 	    /* ui should be updated in case of lineage changes */
 	    updateTaskItemUI(dragItem, respTask);
 	},
-	gapi_task_response_error
+	function(response) {
+	    gapi_task_response_error(response);
+	    uiSetAlert(
+		"<strong>Error!</strong> - Failed to create new task",
+		'alert-danger'
+	    );
+	}
     );
     
 }
@@ -821,7 +876,12 @@ function uiTaskCompleted(e) {
 	    /* track the text and rub it out */
 	    listItem.find('.gtd-task-label').toggleClass('gtd-completed');
 	},
-	gapi_task_response_error
+	function(response) {
+	    uiSetAlert(
+		"<strong>Error!</strong> - Failed to mark task completed",
+		'alert-danger'
+	    );
+	}
     );
 }
 
