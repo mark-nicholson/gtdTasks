@@ -120,7 +120,13 @@ class TaskData {
         /* do this last */
         delete this._tasks[task.id];
     }
-    
+
+    updateTask(task) {
+	var taskList = taskData.taskListFromTaskID(task.id);
+	this.removeTask(task);
+	this.addTask(task, taskList);
+    }
+
     _removeTaskFromTaskList(task, taskList) {
         var idx = this._tasks_by_tasklist[taskList.id].findIndex(function (item) {
             return item.id == task.id;
@@ -445,12 +451,12 @@ function createPanel(title, footer, id) {
 /*
  * Locate 'active' list items and indent or outdent them as needed
  */
-function indentActiveItems(indent) {
+function indentActiveItems(do_indent) {
     var area = document.getElementById('tasksArea');
     var items = $(area).find('li.active');
     //var items = document.getElementsByClassName('li.active');
     
-    console.log("got: " + indent);
+    console.log("got: " + do_indent);
     
     /* skip errant calls */
     if (items.length == 0) {
@@ -482,7 +488,7 @@ function indentActiveItems(indent) {
     console.log("Parent Item: " + parentTask.title + " (" + indentLevel + ")");
     console.log(parentTask);
     
-    if (indent)
+    if (do_indent)
         indentLevel++;
     
     console.log("Indent Level:  " + indentLevel);
@@ -530,7 +536,7 @@ function indentActiveItems(indent) {
         label.removeClass(labelList[indentIdx]);
         
         /* migrate the indent accordingly */
-        if (indent) {
+        if (do_indent) {
             indentIdx++;
             if (indentIdx > 4)    // maxes out
                 indentIdx = 4;
@@ -1005,9 +1011,21 @@ function taskListPanel(taskList) {
             e.preventDefault();
             //console.log("Got a list-item click");
             //console.log(e);
-            //$(this).parent().find('li').removeClass('active');
-            //this.classList.add('active');
-            this.classList.toggle('active');
+
+	    var multiSelect = false;
+
+	    /*
+	     * The multi-select seems to have some odd behaviours
+	     */
+	    if (!multiSelect) {
+		/* this is for single select mode */
+		$(this).parent().find('li').removeClass('active');
+		this.classList.add('active');
+	    }
+	    else {
+		/* use this for multi-select */
+		this.classList.toggle('active');
+	    }
         };
 
         /* create the display entry for this task */
