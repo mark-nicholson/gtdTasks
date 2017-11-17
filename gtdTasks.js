@@ -179,6 +179,82 @@ class TaskData {
 /* global data management */
 var taskData = new TaskData();
 
+/* classes used for indentation */
+var indentClasstagList = [
+    'gtd-task-indent-0',
+    'gtd-task-indent-1',
+    'gtd-task-indent-2',
+    'gtd-task-indent-3',
+    'gtd-task-indent-4'
+];
+var labelClasstagList = [
+    'gtd-task-label-0',
+    'gtd-task-label-1',
+    'gtd-task-label-2',
+    'gtd-task-label-3',
+    'gtd-task-label-4'
+];
+
+/*******************************************************************************
+ *
+ *          GAPI Common Routines
+ *
+ ******************************************************************************/
+
+function gapi_console_logger(response) {
+    console.log(JSON.stringify(response, undefined, 2));
+}
+
+function gapi_task_response_error(response) {
+    console.log("GAPI Error:");
+    gapi_console_logger(response);
+}
+
+function gapi_task_response_ok(response) {
+    var task = response.result;
+    
+    /* log the return data */
+    console.log(JSON.stringify(response, undefined, 2));
+
+    /* update the cache with the latest version of this task */
+    taskData.updateTask(task);
+
+    /* located the UI list-item block associated with this task's id */
+    //var item = document.getElementById(task.id);
+    var item = $('#'+task.id);
+    console.log("ITEM:");
+    console.log($(item));
+
+    updateTaskItemUI(item, task);
+}
+
+function updateTaskItemUI(taskItem, task) {
+    
+    /* update the entry to reflect the indentation, etc */
+
+    var cur = task;
+    var pd = 0;
+
+    /* get parent depth */
+    while (cur && cur.hasOwnProperty('parent')) {
+        cur = taskData.taskByID(cur.parent);
+        pd++;
+    }
+    console.log("Task: " + task.title + " parentage: " + pd);
+
+    var spacer = taskItem.find('.fa-square-o');
+    var label = taskItem.find('.gtd-task-label');
+
+    /* strip out any pre-existing indentation stuff */
+    spacer.removeClass(indentClasstagList.join(' '));
+    label.removeClass(labelClasstagList.join(' '));
+
+    /* add in the indentation which SHOULD be there */
+    spacer.addClass(indentClasstagList[pd]);
+    label.addClass(labelClasstagList[pd]);
+}
+
+
 
 /*
  * Populate <div> with a checkbox list of tasklists
@@ -234,36 +310,46 @@ function taskListsSelectionList(divID) {
 
 function uiNewTaskListOk() {
     var name = $('#gtdNewTaskListName').val();    
-    var tasklist = {
-        'title': name
+    var params = {
+	'resource': {
+            'title': name
+	}
     }
  
     /* function callback is inline to access local function namespace */
-    gapi.client.tasks.tasklists.insert( {'resource': tasklist} ).then(function(response) {
-        var newTL = response.result;
+    gapi.client.tasks.tasklists.insert( params ).then(
+	function(response) {
+            var newTL = response.result;
 
-        /* add to the local cache... */
-        taskData.addTaskList(newTL);
-
-        /* re-render the page -- should create the new panel */
-        renderTasks();
-    });    
+            /* add to the local cache... */
+            taskData.addTaskList(newTL);
+	    
+            /* re-render the page -- should create the new panel */
+            renderTasks();
+	},
+	gapi_task_response_error
+    );
 }
 
 function uiDeleteTaskList(e) {
     var panel = $(this).closest('.panel');
     var taskList = taskData.taskListByID(panel.attr('id'));
-    var tasksArea = document.getElementById('tasksArea');
 
-    /* add ARE YOU SURE modal... */
+    /* add ARE YOU SURE modal... 
+     *  Should have 'x' open modal with yes/no, yes -> this routine, no just closes
+     */
 
     /* update google and the local cache */
-    gapi.client.tasks.tasklists.delete( {'tasklist': taskList.id} ).then(function(response) {
-        taskData.removeTaskList(taskList);
-    });
+    gapi.client.tasks.tasklists.delete( {'tasklist': taskList.id} ).then(
+	function(response) {
+	    /* tidy up the cache */
+            taskData.removeTaskList(taskList);
     
-    /* remove the panel itself */
-    panel.remove();
+	    /* remove the panel itself */
+	    panel.remove();
+	},
+	gapi_console_logger
+    );
 }
 
 function createPanel(title, footer, id) {
@@ -441,7 +527,10 @@ function indentActiveItems(indent) {
 	//params['previous'] = previousTask.id
 	params['parent'] = parentTask.id
 
-        gapi.client.tasks.tasks.move(params).then(gapi_console_logger);
+        gapi.client.tasks.tasks.move(params).then(
+	    gapi_task_response_ok,
+	    gapi_task_response_error
+	);
 
         /* push it up to the cloud 
         gapi.client.tasks.tasks.move({
@@ -473,36 +562,41 @@ function uiTaskAdd(e) {
     var input = panel.find('.gtd-add-task');
     var pList = panel.find('ul');
 
-    /* create a template task */
-    var task = {}
-    task.title = input.val();
-    task.completed = null;
-    task.status = 'needsAction';
+    /* create a template */
+    var params = {
+        'tasklist': taskList.id,
+	'resource': {
+	    'title': input.val(),
+	    'completed': null,
+	    'status': 'needsAction'
+	}
+    };
 
     /* function callback is inline to access local function namespace */
-    gapi.client.tasks.tasks.insert( {
-        'tasklist': taskList.id,
-        'resource': task} ).then(function(response) {
-            var newTask = response.result;
-
-            /* update the cache */
-            taskData.addTask(newTask, taskList);
-        
-            /* polish the ui */
-            var pItem = document.createElement('li');
-            pItem.classList.add('list-group-item');
-            pItem.id = newTask.id;
-
-            /* create the display entry for this task */
-            divTaskEntry(pItem, newTask);
-
-            /* weave it into the list */
-            pList.append(pItem);
-
-            /* cleanup */
-            input.val("");
-
-        });
+    gapi.client.tasks.tasks.insert( params ).then(
+	function(response) {
+	    var newTask = response.result;
+	    
+	    /* update the cache */
+	    taskData.addTask(newTask, taskList);
+	    
+	    /* polish the ui */
+	    var pItem = document.createElement('li');
+	    pItem.classList.add('list-group-item');
+	    pItem.id = newTask.id;
+	    
+	    /* create the display entry for this task */
+	    divTaskEntry(pItem, newTask);
+	    
+	    /* weave it into the list at the start */
+	    pList.prepend(pItem);
+	    
+	    /* cleanup */
+	    input.val("");
+	    
+        },
+	gapi_task_response_error
+    );
 }
 
 /*
@@ -555,60 +649,77 @@ function uiTaskEditModal() {
 
 function gtdEditModalOk() {
     var task = taskData.taskByID($("#gtdEditModalTaskID").val());
-    var listInfo = $('#'+task.id).find('.gtd-task-label');
+    var taskItem = $('#'+task.id);
+    var listInfo = taskItem.find('.gtd-task-label');
     var taskList = taskData.taskListFromTaskID(task.id);
 
-    var title = $("#gtdEditModalTitle").val();
-    if (title && title != "") {
-        task.title = title;
-        listInfo.find('.gtd-task-title').html(title);
-    }
+    var params = {
+        'task': task.id,
+        'tasklist': taskList.id
+    };
 
-    var notes = $("#gtdEditModalNotes").val();
-    if (notes && notes != "") {
-        task.notes = notes;
-        listInfo.find('.gtd-item-notes').html(notes);
-    }
-
-    var dueDate = $("#gtdEditModalDate").val();
-    var dueTime = $("#gtdEditModalTime").val();
-    if (dueDate && dueDate != "") {
-        task.due = dateTime_to_taskTime(dueDate, dueTime);
-        
-        var dueBlock = listInfo.find('.gtd-task-due-date');
-        var dueDate = dueBlock.find('.gtd-item-date');
-        dueDate.html(displayDateTime(task.due));
-        dueBlock.show();
-    }
-
-    /* collect data before we hide the modal */
+    /* are we blowing away? */
     var cb = document.getElementById("gtdEditModalDelete");
     var deleteMe = cb.checked;
     
-    /* clean up */
-    gtdEditModalHide();
-    
     /* remove the task if requested */
     if (deleteMe) {
-        gapi.client.tasks.tasks.delete({
-            'task': task.id,
-            'tasklist': taskList.id
-        }).then(gapi_console_logger);
-        
-        /* remove UI entry and cache */
-        taskData.removeTask(task);
-        $('#'+task.id).remove()
-        
+        gapi.client.tasks.tasks.delete(params).then(
+	    function (response) {
+		taskData.removeTask(task);   /* remove cache copy */
+		taskItem.remove();           /* remove UI entry */
+	    },
+	    gapi_console_logger
+	);
+
+	/* clean up */
+	gtdEditModalHide();
+
         /* end here */
         return;
     }
+
+    /* prepare to add the updating fields */
+    params['resource'] = {};
+
+    /* extract the info from the modal */
+    var title = $("#gtdEditModalTitle").val();
+    if (title && title != "" && title != task.title)
+	params['resource']['title'] = title;
+
+    var notes = $("#gtdEditModalNotes").val();
+    if (notes && notes != "" && notes != task.notes)
+	params['resource']['notes'] = notes;
+
+    var dueDate = $("#gtdEditModalDate").val();
+    var dueTime = $("#gtdEditModalTime").val();
+    if (dueDate && dueDate != "" && dueDate != task.due)
+	params['resource']['due'] = dateTime_to_taskTime(dueDate, dueTime);
+
     
     /* eventually write back to google */
-    gapi.client.tasks.tasks.update({
-        'tasklist': taskList.id,
-        'task': task.id,
-        'resource': task
-    }).then(gapi_console_logger);
+    gapi.client.tasks.tasks.patch(params).then(
+	function (response) {
+	    var respTask = response.result;
+
+	    /* update the cache */
+	    taskData.addTask(respTask, taskList);
+
+	    /* UI should be updated */
+	    listInfo.find('.gtd-task-title').html(respTask.title);
+	    
+	    listInfo.find('.gtd-item-notes').html(respTask.notes);
+
+	    if (respTask.hasOwnProperty('due')) {
+		var dueBlock = listInfo.find('.gtd-task-due-date');
+		var dueDate = dueBlock.find('.gtd-item-date');
+		dueDate.html(displayDateTime(respTask.due));
+		dueBlock.show();
+	    }
+	},
+	gapi_task_response_error,
+	null  /* context -- exists in routines a 'this' */
+    );
 
 }
 
@@ -638,13 +749,22 @@ function uiTaskDrag(event, ui) {
     }
 
     /* do it */
-    gapi.client.tasks.tasks.move(params).then(gapi_console_logger);
-    
+    gapi.client.tasks.tasks.move(params).then(
+	function (response) {
+	    var respTask = response.result;
+
+	    /* log the return data */
+	    console.log(JSON.stringify(response, undefined, 2));
         
-    /* update cache */
-    taskData.moveTask(dragTask, targetTaskList, dragItem.index());
+	    /* update cache -- with result entry*/
+	    taskData.moveTask(respTask, targetTaskList, dragItem.index());
     
-    /* ui should be ok... */
+	    /* ui should be updated in case of lineage changes */
+	    updateTaskItemUI(dragItem, respTask);
+	},
+	gapi_task_response_error
+    );
+    
 }
 
 function uiTaskNext(e) {
@@ -658,41 +778,51 @@ function uiTaskNext(e) {
     this.classList.toggle('fa-star');
 }
 
-function gapi_console_logger(result) {
-    console.log(JSON.stringify(result));
-}
-
 function uiTaskCompleted(e) {
-    var listItem = $(this).closest('li');
+    var boxIcon = $(this);
+    var listItem = boxIcon.closest('li');
     var task = taskData.taskByID(listItem.attr('id'));
     var taskList = taskData.taskListFromTaskID(task.id);
-    
-    /* tag the task as complete */
-    if (task.status != 'completed') {
-        task.status = 'completed';
-        var dt = new Date();
-        task.completed = dt.toISOString();
-    }
-    else {
-        task.status = 'needsAction';
-        task.completed = null;
-    }
-
-    /* switch out the icon */
-    //this.classList.toggle('fa-square-o');
-    //this.classList.toggle('fa-check');
-    $(this).toggleClass('fa-square-o');
-    $(this).toggleClass('fa-check');
-    
-    /* track the text and rub it out */
-    listItem.find('.gtd-task-label').toggleClass('gtd-completed');
-    
-    /* update Google entry */
-    gapi.client.tasks.tasks.patch({
+    var params = {
         'tasklist': taskList.id,
         'task': task.id,
-        'resource': { 'status': task.status, 'completed': task.completed }
-    }).then(gapi_console_logger);
+        'resource': {
+	    'status': 'needsAction',
+	    'completed': null
+	}
+    };
+
+    /* toggle the task as completed if it was not */
+    if (task.status != 'completed') {
+        var dt = new Date();
+        params['resource']['status'] = 'completed';
+        params['resource']['completed'] = dt.toISOString();
+    }
+
+    /* turn off the active mode */
+    listItem.toggleClass('active');
+
+    /* update Google entry */
+    gapi.client.tasks.tasks.patch(params).then(
+	function (response) {
+	    var respTask = response.result;
+
+	    /* log the return data */
+	    console.log(JSON.stringify(response, undefined, 2));
+        
+	    /* update cache -- with result entry*/
+	    taskData.removeTask(task);
+	    taskData.addTask(respTask, taskList);
+
+	    /* switch out the icon */
+	    boxIcon.toggleClass('fa-square-o');
+	    boxIcon.toggleClass('fa-check');
+    
+	    /* track the text and rub it out */
+	    listItem.find('.gtd-task-label').toggleClass('gtd-completed');
+	},
+	gapi_task_response_error
+    );
 }
 
 function divTaskEntry(pItem, task) {
@@ -1081,13 +1211,16 @@ function initClient() {
         discoveryDocs: DISCOVERY_DOCS,
         clientId: CLIENT_ID,
         scope: SCOPES
-    }).then(function () {
-        // Listen for sign-in state changes.
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+    }).then(
+	function () {
+            /* Listen for sign-in state changes. */
+            gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
 
-        // Handle the initial sign-in state.
-        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-    });
+            /* Handle the initial sign-in state. */
+            updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+	},
+	gapi_console_logger
+    );
 }
 
 /**
@@ -1157,9 +1290,12 @@ function loadTaskListsCache(response) {
         
         /* add the tasklist to the cache first */
         taskData.addTaskList(tl);
-        
+
+        /* fetch each list and load the tasks in it */
         gapi.client.tasks.tasks.list({'tasklist': tl.id}).then(
-            loadTasksCache, handleTasksError, tl
+            loadTasksCache,
+	    handleTasksError,
+	    tl   /* context -- becomes 'this' */
         );
     }
 }
@@ -1170,11 +1306,15 @@ function loadData() {
     
     gapi.client.tasks.tasklists.list({
         'maxResults': 100
-    }).then(loadTaskListsCache);
+    }).then(
+	loadTaskListsCache,
+	gapi_console_logger
+    );
 }
 
 function handleTasksError(reason) {
-    console.log("problem collecting tasks for " + this.title);
+    console.log("problem collecting tasks for '" + this.title + "'");
+    console.log(JSON.stringify(reason, undefined, 2));
 }
 
 /* setup the initial refresh timer... */
