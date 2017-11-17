@@ -100,7 +100,8 @@ class TaskData {
         if (oldTask != null) {
             if (oldTask.updated == newTask.updated)
                 return;  /* same old data */
-            this.removeTask(oldTask);
+	    else
+		this.removeTask(oldTask);
         }
         
         this._tasks[newTask.id] = newTask;
@@ -493,23 +494,7 @@ function indentActiveItems(do_indent) {
     
     console.log("Indent Level:  " + indentLevel);
     
-    /* kind of annoying, but these lists are helpful - really need list slicing like python. */
-    var indentList = [
-        'gtd-task-indent-0',
-        'gtd-task-indent-1',
-        'gtd-task-indent-2',
-        'gtd-task-indent-3',
-        'gtd-task-indent-4'
-    ];
-    var labelList = [
-        'gtd-task-label-0',
-        'gtd-task-label-1',
-        'gtd-task-label-2',
-        'gtd-task-label-3',
-        'gtd-task-label-4'
-    ];
-
-    var previousTask = parentTask;
+    var previousTask = null;
     
     /* iterate through each one and adjust its nesting */
     for (var idx = 0; idx < items.length; idx++) {
@@ -526,14 +511,14 @@ function indentActiveItems(do_indent) {
         
         /* figure out the indent-class used */
         var indentIdx;
-        for (indentIdx in indentList) {
-            if (spacer.hasClass(indentList[indentIdx]))
+        for (indentIdx in indentClasstagList) {
+            if (spacer.hasClass(indentClasstagList[indentIdx]))
                 break;
         }
 
         /* remove the previous formatting */
-        spacer.removeClass(indentList[indentIdx]);
-        label.removeClass(labelList[indentIdx]);
+        spacer.removeClass(indentClasstagList[indentIdx]);
+        label.removeClass(labelClasstagList[indentIdx]);
         
         /* migrate the indent accordingly */
         if (do_indent) {
@@ -548,8 +533,8 @@ function indentActiveItems(do_indent) {
         }
         
         /* adjust the classes */
-        spacer.addClass(indentList[indentIdx]);
-        label.addClass(labelList[indentIdx]);
+        spacer.addClass(indentClasstagList[indentIdx]);
+        label.addClass(labelClasstagList[indentIdx]);
                 
         /* set the task's parent to the new parent */
         task.parent = parentTask.id;
@@ -559,7 +544,7 @@ function indentActiveItems(do_indent) {
 	    'tasklist': taskList.id,
 	    'task': task.id
 	};
-	//params['previous'] = previousTask.id
+
 	params['parent'] = parentTask.id
 
         gapi.client.tasks.tasks.move(params).then(
