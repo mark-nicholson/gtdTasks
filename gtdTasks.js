@@ -249,8 +249,8 @@ function updateTaskItemUI(taskItem, task) {
     }
     console.log("Task: " + task.title + " parentage: " + pd);
 
-    var spacer = taskItem.find('.fa-square-o');
-    var label = taskItem.find('.gtd-task-label');
+    var spacer = $(taskItem).find('.fa-square-o');
+    var label = $(taskItem).find('.gtd-task-label');
 
     /* strip out any pre-existing indentation stuff */
     spacer.removeClass(indentClasstagList.join(' '));
@@ -316,7 +316,8 @@ function taskListsSelectionList(divID) {
 }
 
 function uiSetAlert(htmlMsg, level) {
-    var alertDiv = document.getElementById('alertArea');
+    var alertArea = document.getElementById('alertArea');
+    var alertDiv = document.createElement('div');
     var closer = document.createElement('A');
     var message = document.createElement('P');
 
@@ -449,6 +450,15 @@ function createPanel(title, footer, id) {
     return { panel: panel, body: pBody, list: pList, footer: pFoot };
 }
 
+function calcIndentLevel(task) {
+    var indentLevel = 0;
+    while (task && task.hasOwnProperty('parent')) {
+        task = taskData.taskByID(task.parent);
+        indentLevel++;
+    }
+    return indentLevel;
+}
+
 /*
  * Locate 'active' list items and indent or outdent them as needed
  */
@@ -464,112 +474,132 @@ function indentActiveItems(do_indent) {
         console.log("No items selected for indent.")
         return;
     }
-    
-    //items
-    
-    /* grab the parent entry 
-       -- we're assuming a contiguous set of selections with a single parent target */
-    var parentItem = items[0].previousSibling;
-    if (! parentItem) {
-        console.log("Selected items have no preceding entry to make a parent.");
+
+    /* grab the previous entry -- something must exist to be a parent */
+    var previousItem = items[0].previousSibling;
+    if (! previousItem) {
+	uiSetAlert(
+	    "<strong>Notice</strong> - Task has no preceding entry to make a parent.",
+	    'alert-info'
+	);
         return;
     }
-    
-    var parentTask = taskData.taskByID(parentItem.id);
-    var taskList = taskData.taskListFromTaskID(parentTask.id);
-    var indentLevel = 0;
-    var cur = parentTask;
-    
-    /* get parent depth */
-    while (cur && cur.hasOwnProperty('parent')) {
-        cur = taskData.taskByID(cur.parent);
-        indentLevel++;
-    }
 
-    console.log("Parent Item: " + parentTask.title + " (" + indentLevel + ")");
-    console.log(parentTask);
-    
-    if (do_indent)
-        indentLevel++;
-    
-    console.log("Indent Level:  " + indentLevel);
-    
-    var previousTask = null;
-    
-    /* iterate through each one and adjust its nesting */
-    for (var idx = 0; idx < items.length; idx++) {
-        var item = items[idx];
-        var task = taskData.taskByID(item.id);
-        console.log("Selected Task: " + task.title);
-        console.log(task);
-        
-        /*
-         * spacing is controlled by TWO classes.  Fetch each item and tweak it.
-         */
-        var spacer = $(item).find('.fa-square-o');
-        var label = $(item).find('.gtd-task-label');
-        
-        /* figure out the indent-class used */
-        var indentIdx;
-        for (indentIdx in indentClasstagList) {
-            if (spacer.hasClass(indentClasstagList[indentIdx]))
-                break;
-        }
+    var taskItem = items[0];
+    var task = taskData.taskByID(taskItem.id);
+    var taskList = taskData.taskListFromTaskID(task.id);
+    var previousTask = taskData.taskByID(previousItem.id);
+	
+    /* gapi update info */
+    params = {
+	'tasklist': taskList.id,
+	'task': task.id,
+	'parent': null,          /* default: no parent (at top level) */
+	'previous': null         /* default: top of list */
+    };
 
-        /* remove the previous formatting */
-        spacer.removeClass(indentClasstagList[indentIdx]);
-        label.removeClass(labelClasstagList[indentIdx]);
-        
-        /* migrate the indent accordingly */
-        if (do_indent) {
-            indentIdx++;
-            if (indentIdx > 4)    // maxes out
-                indentIdx = 4;
-        }
-        else {
-            indentIdx--;
-            if (indentIdx < 0)     // floors
-                indentIdx = 0;
-        }
-        
-        /* adjust the classes */
-        spacer.addClass(indentClasstagList[indentIdx]);
-        label.addClass(labelClasstagList[indentIdx]);
-                
-        /* set the task's parent to the new parent */
-        task.parent = parentTask.id;
-        console.log(task);
 
-	params = {
-	    'tasklist': taskList.id,
-	    'task': task.id
-	};
+    if (!do_indent) {
 
-	params['parent'] = parentTask.id
+	/* OUTDENT */
 
-        gapi.client.tasks.tasks.move(params).then(
-	    gapi_task_response_ok,
-	    function(response) {
-		gapi_task_response_error(response);
-		uiSetAlert(
-		    "<strong>Error</strong> - Failed to create new task-list",
-		    'alert-danger'
-		);
+	if (!task.hasOwnProperty('parent')) {
+	    /* top-level item... can't outdent */
+	    uiSetAlert(
+		"<strong>Notice</strong> - Task already at top-level.",
+		'alert-info'
+	    );
+	    return;
+	}
+
+	var parentTask = taskData.taskByID(task.parent);
+
+	/* parent must be this */
+	if (parentTask.hasOwnProperty('parent')) {
+	    params['parent'] = parentTask.parent;
+
+	    /* the previous entry should be the higest index, 
+	       below item's whose parent is parentTask */
+	    var tasks = taskData.tasksByTaskListID(taskList.id);
+	    for (var idx = tasks.indexOf(task) - 1; idx >= 0; idx--) {
+		if (tasks[idx].parent == parentTask.parent) {
+		    params['previous'] = tasks[idx].id;
+		    break;
+		}
 	    }
-	);
+	}
+	else {
+	    /* no grand parent -- make the previous task still previous */
+	    params['previous'] = parentTask.id;
+	    console.log("parentTask set to previous");
 
-        /* push it up to the cloud 
-        gapi.client.tasks.tasks.move({
-            'tasklist': taskList.id,
-            'task': task.id,
-	    'parent': parentTask.id,
-	    'previous': previousTask.id */
-            /*'resource': { 'parent': parentTask.id, 'previous': previousTask.id } 
-        }).then(gapi_console_logger); */
-   
-        previousTask = task;
+	    /* find task which is has no indent */
+	}
+    }
+    else {
+
+	/* INDENT */
+
+	var cur = task;
+	var indentLevel = calcIndentLevel(task);
+	var newIndentLevel = indentLevel + 1;
+	console.log("IndentLevel: " + indentLevel);
+
+	/* need to cap it */
+	if (newIndentLevel > 4) {
+	    uiSetAlert(
+		"<strong>Warning!</strong> - Cannot outdent any further.",
+		'alert-warning'
+	    );
+	    return;
+	}
+
+	/* previoustask is at the same level as the indenting one -- make it parent */
+	if (calcIndentLevel(previousTask) == indentLevel)
+	    params['parent'] = previousTask.id;
+	else {
+	    /* walk backwards to find the parent */
+	    params['previous'] = previousTask.id;
+
+	    var pi = previousItem;
+	    while (pi) {
+		var pit = taskData.taskByID(pi.id);
+
+		if (calcIndentLevel(pit) == indentLevel) {
+		    params['parent'] = pi.id;
+		    break;
+		}
+		
+		pi = pi.previousSibling;
+	    }
+	}
+	    
     }
 
+    /* run the update */
+    gapi.client.tasks.tasks.move(params).then(
+	function(response) {
+	    var respTask = response.result;
+
+	    console.log(JSON.stringify(response, undefined, 2));
+
+	    /* update the cache */
+	    taskData.removeTask(respTask);
+	    taskData.addTask(respTask, taskList);
+
+	    /* update the task's UI indentation */
+	    updateTaskItemUI(taskItem, respTask);
+	},
+	function(response) {
+	    gapi_task_response_error(response);
+	    uiSetAlert(
+		"<strong>Error</strong> - Failed to create new task-list",
+		'alert-danger'
+	    );
+	}
+    );
+
+    return;
 }
 
 
