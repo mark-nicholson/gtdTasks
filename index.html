@@ -1,92 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
-	rel="stylesheet"
-	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
-	crossorigin="anonymous">
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  
+  <!-- Bootstrap CSS 
+  <link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+	integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+	crossorigin="anonymous"> -->
+  <link rel="stylesheet" href="/nih/bootstrap/4.0.0/bootstrap.min.css">
+  
+  <!-- Font-Awesome CSS -->
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
 	rel="stylesheet"
 	integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
 	crossorigin="anonymous">
   <link rel="shortcut icon" href="gtdTasks.ico" />
-  <link rel="stylesheet" type="text/css" href="gtdTasks.css"></link>
+  <link rel="stylesheet" media="all" type="text/css" href="gtdTasks.css"></link>
+
   <title>GTD gTasks</title>
+  
 </head>
 
 <body id='gtdBody'>
 
-    <nav class="navbar navbar-default navbar-fixed-top">
-      <div class="container-fluid">
-        <!-- Brand and toggle get grouped for better mobile display -->
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">GTD gTasks</a>
-        </div>
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-primary">
+    <a class="navbar-brand" href="#">
+      <!--<img src="/assets/brand/bootstrap-solid.svg" width="30" height="30" alt=""> -->
+      GTD-gTasks
+    </a>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+      <ul class="navbar-nav mr-auto">
+	<!-- Placeholder for future items -- needed for alignment of next nav-bar -->
+      </ul>
+      <ul class="navbar-nav navbar-right">
+	<li class="nave-item">
+	  <a class="nav-link" onclick="handleAuthClick()" id="authorize-button" href="#">Authorize</a>
+	</li>
+	<li class="nav-item active dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+	    <i class="navbar-toggler-icon" aria-hidden="true"> </i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
+            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#gtdNewTaskListModal">New List</a>
+	    <a class="dropdown-item" href="#" onclick="loadData()">Refresh</a>
+	    <a class="dropdown-item" href="#" onclick="handleJsonClick()" id="json-button">JSON</a>
+            <a class="dropdown-item" href="#" onclick="checkSizes()">Sizes</a>
+            <a class="dropdown-item" href="#" onclick="indentActiveItems(true)">Indent</a>
+            <a class="dropdown-item" href="#" onclick="indentActiveItems(false)">Outdent</a>
+	    <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#gtdPrefsModal">Preferences</a>
+          </div>
+	</li>
+      </ul>
+    </div>
+  </nav>
 
-        <!-- Collect the nav links, forms, and other content for toggling -->
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav navbar-right">
-            <li><a onclick="handleAuthClick()" id="authorize-button" href="#">Authorize</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><i class="fa fa-align-justify fa-2x" aria-hidden="true"> </i><span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a data-toggle="modal" data-target="#gtdNewTaskListModal" href="#">New List</a></li>
-                <li><a onclick="loadData()" href="#">Refresh</a></li>
-                <li><a onclick="handleJsonClick()" id="json-button" href="#">JSON</a></li>
-                <li><a onclick="checkSizes()" href="#">Sizes</a></li>
-                <li><a onclick="indentActiveItems(true)" href="#">Indent</a></li>
-                <li><a onclick="indentActiveItems(false)" href="#">Outdent</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a data-toggle="modal" data-target="#gtdPrefsModal" href="#">Preferences</a></li>
-              </ul>
-            </li>
-          </ul>
-        </div><!-- /.navbar-collapse -->
-      </div><!-- /.container-fluid -->
-    </nav>
-
-    <div id="alertArea"></div>
+  <div id="alertArea"></div>
     
-    <div id='tasksArea' class='container'></div>
+  <div id='tasksArea' class='container-fluid'></div>
 
-    <div id="sandbox" class='container' style="display: none;"></div>
+  <div id="sandbox" class='container-fluid' style="display: none;"></div>
 
-</body>
-
-<footer class="gtd-footer">
+  <footer class="gtd-footer">
     <p id=date></p>
-</footer>
+  </footer>
 
-<script type="text/javascript">
+  <script type="text/javascript">
     var el = document.getElementById('date');
     var cdate = Date();
     el.innerHTML = cdate;
-</script>
+  </script>
 
-<script
-   src="https://code.jquery.com/jquery-3.2.1.min.js"
-   integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
-   crossorigin="anonymous"></script>
 
-<script
-   src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-   integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
-   crossorigin="anonymous"></script>
-
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
-	integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
-	crossorigin="anonymous"></script>
-
-<script type="text/javascript" src="nih/FileSaver.min.js"></script>
-
-<script src="gtdTasks.js"></script>
+  
+  <!-- jQuery stuff first - need full version for 'sorting' -->
+  <script
+     src="http://code.jquery.com/jquery-3.3.1.min.js"
+     integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+     crossorigin="anonymous"></script>
+  <script
+       src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+       integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+       crossorigin="anonymous"></script>
+  
+  <!-- Popper.js second -->
+  <script
+     src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+     integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+     crossorigin="anonymous"></script>
+  
+  <!-- Bootstrap JS third -->
+  <script
+     src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+     integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+     crossorigin="anonymous"></script>
+  
+  <!-- Custom JS -->
+       <script type="text/javascript" src="nih/FileSaver.min.js"></script>
+       <script src="gtdTasks.js"></script>
+  
+</body>
 
 
 <!-- Modal Dialogs -->
@@ -243,6 +262,7 @@
       onload="this.onload=function(){};handleClientLoad()"
       onreadystatechange="if (this.readyState === 'complete') this.onload()">
   </script>
+
 </div>
 
 </html>

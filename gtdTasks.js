@@ -364,8 +364,8 @@ function uiNewTaskListOk() {
 }
 
 function uiDeleteTaskList(e) {
-    var panel = $(this).closest('.panel');
-    var taskList = taskData.taskListByID(panel.attr('id'));
+    var card = $(this).closest('.card');
+    var taskList = taskData.taskListByID(card.attr('id'));
 
     /* add ARE YOU SURE modal... 
      *  Should have 'x' open modal with yes/no, yes -> this routine, no just closes
@@ -377,8 +377,8 @@ function uiDeleteTaskList(e) {
 	    /* tidy up the cache */
             taskData.removeTaskList(taskList);
     
-	    /* remove the panel itself */
-	    panel.remove();
+	    /* remove the card itself */
+	    card.remove();
 	},
 	function(response) {
 	    uiSetAlert(
@@ -389,32 +389,28 @@ function uiDeleteTaskList(e) {
     );
 }
 
-function createPanel(title, footer, id) {
-    var panel = document.createElement('div');
-    var panelHeading = document.createElement('div');
+function createCard(title, footer, id) {
+    var card = document.createElement('div');
+    var cardHeading = document.createElement('div');
     var phData = document.createElement('div');
  
-    panel.classList.add('panel', 'panel-primary', 'panel-gtd');
-    panel.id = id;
+    card.classList.add('card', 'card-gtd', 'border-primary', 'mb-3');
+    card.id = id;
     
-    panelHeading.classList.add('panel-heading');
-
-    phData.classList.add('panel-title');
-    phData.innerHTML = title;
+    cardHeading.classList.add('card-header', 'text-center', 'h5', 'bg-primary', 'border-primary', 'mb-3', 'text-white');
+    cardHeading.innerHTML = title
     
-    var phButton = document.createElement('button');
-    phButton.type = "button";
-    phButton.classList.add("close");
-    phButton.onclick = uiDeleteTaskList;
-    phButton.innerHTML = "&times;";
+    var phCloser = document.createElement('div');
+    phCloser.classList.add("close", 'd-print-none');
+    phCloser.onclick = uiDeleteTaskList;
+    phCloser.innerHTML = "&times;";
 
-    panelHeading.appendChild(phData);
-    panelHeading.appendChild(phButton);
-    panel.appendChild(panelHeading);
+    cardHeading.appendChild(phCloser);
+    card.appendChild(cardHeading);
     
     pBody = document.createElement('div');
-    pBody.classList.add('panel-body');
-    panel.appendChild(pBody);
+    pBody.classList.add('card-body', 'border-primary', 'mb-3');
+    card.appendChild(pBody);
     
     pList = document.createElement('ul');
     pList.classList.add('list-group');
@@ -429,7 +425,7 @@ function createPanel(title, footer, id) {
     pBody.appendChild(pList);
 
     pFoot = document.createElement('div');
-    pFoot.classList.add('panel-footer');
+    pFoot.classList.add('card-footer', 'd-print-none', 'bg-primary', 'text-white');
 
     var newTaskButton = document.createElement('i');
     newTaskButton.classList.add('fa', 'fa-fw', 'fa-plus', 'gtd-add-task-button', 'pull-left');
@@ -445,9 +441,9 @@ function createPanel(title, footer, id) {
     newTask.onkeyup = uiTaskAdd;
     inputSpan.appendChild(newTask);
     pFoot.appendChild(inputSpan);
-    panel.appendChild(pFoot);
+    card.appendChild(pFoot);
 
-    return { panel: panel, body: pBody, list: pList, footer: pFoot };
+    return { card: card, body: pBody, list: pList, footer: pFoot };
 }
 
 function calcIndentLevel(task) {
@@ -613,10 +609,10 @@ function uiTaskAdd(e) {
         return;
     
     /* do this on ENTER */
-    var panel = $(this).closest('.panel');
-    var taskList = taskData.taskListByID(panel.attr('id'));
-    var input = panel.find('.gtd-add-task');
-    var pList = panel.find('ul');
+    var card = $(this).closest('.card');
+    var taskList = taskData.taskListByID(card.attr('id'));
+    var input = card.find('.gtd-add-task');
+    var pList = card.find('ul');
 
     /* create a template */
     var params = {
@@ -796,11 +792,11 @@ function gtdEditModalOk() {
 function uiTaskDrag(event, ui) {
     var dragItem = ui.item;
     var dragTask = taskData.taskByID(dragItem.attr('id'));
-    var startPanel = $(this).closest('.panel');
-    var startTaskList = taskData.taskListByID(startPanel.attr('id'));
+    var startCard = $(this).closest('.card');
+    var startTaskList = taskData.taskListByID(startCard.attr('id'));
     
-    var targetPanel = dragItem.closest('.panel');
-    var targetTaskList = taskData.taskListByID(targetPanel.attr('id'));
+    var targetCard = dragItem.closest('.card');
+    var targetTaskList = taskData.taskListByID(targetCard.attr('id'));
 
     //console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
     //console.log("ui.item.index(" + dragItem.index() + ")");
@@ -921,7 +917,7 @@ function divTaskEntry(pItem, task) {
 
     /* setup icons */
     var drag = document.createElement('i');
-    drag.classList.add('fa', 'fa-fw', 'fa-reorder', 'pull-left');
+    drag.classList.add('fa', 'fa-fw', 'fa-reorder', 'd-print-none', 'pull-left');
     
     var next = document.createElement('i');
     next.classList.add('fa', 'fa-fw', 'fa-star-o', 'pull-left');
@@ -929,14 +925,16 @@ function divTaskEntry(pItem, task) {
 
     var done = document.createElement('i');
     done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left', 'gtd-task-indent-'+pd);
+    //done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left'); //, 'gtd-task-indent-'+pd);
     done.onclick = uiTaskCompleted;
 
     var edit = document.createElement('i');
-    edit.classList.add('fa', 'fa-fw', 'fa-edit', 'pull-right');
+    edit.classList.add('fa', 'fa-fw', 'fa-edit', 'd-print-none', 'pull-right');
     edit.onclick = uiTaskEditModal;
     
     var info = document.createElement('div');
     info.classList.add('gtd-task-label', 'gtd-task-label-'+pd);
+    //info.classList.add('gtd-task-label'); //, 'gtd-task-label-'+pd);
     var hInfo = document.createElement('span');
     hInfo.classList.add('gtd-task-title');
     hInfo.innerHTML = task.title;
@@ -990,20 +988,20 @@ function displayDateTime(gt) {
 }
 
 /*
- * Create a BS-panel for each tasklist and its tasks
+ * Create a BS-card for each tasklist and its tasks
  */
-function taskListPanel(taskList) {
+function taskListCard(taskList) {
     var pItem, task, tIdx, tasks;
-    var panelInfo = {
-        panel: null,
+    var cardInfo = {
+        card: null,
         width: -1,
         height: -1,
         taskList: taskList,
         next: null
     };
 
-    var pComp = createPanel(taskList.title, "Footer Text", taskList.id);
-    panelInfo.panel = pComp.panel;
+    var pComp = createCard(taskList.title, "Footer Text", taskList.id);
+    cardInfo.card = pComp.card;
     
     tasks = taskData.tasksByTaskListID(taskList.id);
     
@@ -1053,20 +1051,20 @@ function taskListPanel(taskList) {
     
     /* should render in background (hidden) to get size estimates.*/
     var sb = document.getElementById('tasksArea');
-    sb.appendChild(pComp.panel);
-    panelInfo.height = pComp.panel.clientHeight;
-    panelInfo.width = pComp.panel.clientWidth;
+    sb.appendChild(pComp.card);
+    cardInfo.height = pComp.card.clientHeight;
+    cardInfo.width = pComp.card.clientWidth;
     
-    //DEBUG console.log(taskList.title + ": sandbox: " + pComp.panel.clientWidth + " x " + pComp.panel.clientHeight);
+    //DEBUG console.log(taskList.title + ": sandbox: " + pComp.card.clientWidth + " x " + pComp.card.clientHeight);
     
-    sb.removeChild(pComp.panel);
+    sb.removeChild(pComp.card);
 
-    if (panelInfo.height <= window.innerHeight)
-        return panelInfo;
+    if (cardInfo.height <= window.innerHeight)
+        return cardInfo;
     
     /* split it up */
-    panelInfo.next = createPanel(taskList.title + " cont'd", "Footer Text", taskList.id+'-1')
-    return panelInfo;
+    cardInfo.next = createCard(taskList.title + " cont'd", "Footer Text", taskList.id+'-1')
+    return cardInfo;
 }
 
 function renderTasks() {
@@ -1104,33 +1102,33 @@ function renderTasks() {
     while (tasksArea.childElementCount > 0)
         tasksArea.removeChild(tasksArea.firstChild);
 
-    var panelInfo = [];
+    var cardInfo = [];
     
     /* setup the next task div */
     if (nextTL) {
-        item = taskListPanel(nextTL);
-        panelInfo.push(item);
+        item = taskListCard(nextTL);
+        cardInfo.push(item);
     }
 
     /* fill in the rest of the divs */
     for (ti in taskLists) {
         tl = taskLists[ti];
-        item = taskListPanel(tl);
-        panelInfo.push(item);
+        item = taskListCard(tl);
+        cardInfo.push(item);
     }
     
     /* lay them out so the screen can identify their true size */
-    standardLayout(tasksArea, panelInfo);
+    standardLayout(tasksArea, cardInfo);
     checkSizes();
     
-    /* re-arrange the panels to be best fit */
-    optimizeLayout(tasksArea, panelInfo);
+    /* re-arrange the cards to be best fit */
+    optimizeLayout(tasksArea, cardInfo);
 }
 
-function standardLayout(area, panelInfo) {
+function standardLayout(area, cardInfo) {
     var row, col, pi;
     
-    for (pi in panelInfo) {
+    for (pi in cardInfo) {
         if (pi % 3 == 0) {
             row = document.createElement('div');
             row.classList.add('row');
@@ -1138,17 +1136,17 @@ function standardLayout(area, panelInfo) {
         }
     
         col = document.createElement('div');
-        col.classList.add('col-xs-4');
-        col.appendChild(panelInfo[pi].panel);
+        col.classList.add('col-md-4');
+        col.appendChild(cardInfo[pi].card);
         row.appendChild(col);
     }
     
     return;
 }
 
-function optimizeLayout(tasksArea, panelInfo) {
-    var idx, tl, panel;
-    var nextPanel = null;
+function optimizeLayout(tasksArea, cardInfo) {
+    var idx, tl, card;
+    var nextCard = null;
     var row, col, cols = [];
     
     /* scrub it */
@@ -1156,14 +1154,14 @@ function optimizeLayout(tasksArea, panelInfo) {
         tasksArea.removeChild(tasksArea.firstChild);
     
     /* should be grabbing the Next-Tasks */
-    for (idx in panelInfo) {
-        if (panelInfo[idx].taskList.title == 'Next-Tasks') {
-            nextPanel = panelInfo.splice(idx, 1)[0];
+    for (idx in cardInfo) {
+        if (cardInfo[idx].taskList.title == 'Next-Tasks') {
+            nextCard = cardInfo.splice(idx, 1)[0];
             break;
         }
     }
 
-    while (panelInfo.length > 0) {
+    while (cardInfo.length > 0) {
 
         /* concern only with height */
         row = document.createElement('div');
@@ -1175,42 +1173,42 @@ function optimizeLayout(tasksArea, panelInfo) {
         for (idx=0; idx < 3; idx++) {
             colPx = window.innerHeight;
             col = document.createElement('div');
-            col.classList.add('col-xs-4');
+            col.classList.add('col-md-4');
             row.appendChild(col);
             cols.push(col);
 
             /* fill it up */
-            while (panelInfo.length > 0) {
-                if (!nextPanel)
-                    nextPanel = getBestTL(colPx, panelInfo);
+            while (cardInfo.length > 0) {
+                if (!nextCard)
+                    nextCard = getBestTL(colPx, cardInfo);
 
-                if (!nextPanel) {
+                if (!nextCard) {
                     //console.log("filled this column")
                     break;
                 }
 
-                col.appendChild(nextPanel.panel);
-                colPx -= nextPanel.height;
-                nextPanel = null;
+                col.appendChild(nextCard.card);
+                colPx -= nextCard.height;
+                nextCard = null;
             }
         }
         
         /* all done or nothing fits... */
-        if (colPx == window.innerHeight && nextPanel == null)
+        if (colPx == window.innerHeight && nextCard == null)
             break;
     }
     
-    for (idx in panelInfo) {
-        panel = panelInfo[idx];
-        console.log("Cannot fit panel: "+panel.height);
+    for (idx in cardInfo) {
+        card = cardInfo[idx];
+        console.log("Cannot fit card: "+card.height);
     }
 }
 
-function getBestTL(colPx, panels) {
+function getBestTL(colPx, cards) {
     var i, bestIdx = -1, bestSize = 0;
     var n = 0;
-    for (i in panels) {
-        n = panels[i].height;
+    for (i in cards) {
+        n = cards[i].height;
         //console.log("[" + i +"] bIdx: " + bestIdx + " n:" + n + " bS:" + bestSize);
         if (n <= colPx && n > bestSize) {
             bestIdx = i;
@@ -1223,7 +1221,7 @@ function getBestTL(colPx, panels) {
         return null;
     
     /* remove 'best' from the list and return it */
-    return panels.splice(bestIdx, 1)[0];
+    return cards.splice(bestIdx, 1)[0];
 }
 
 function checkSizes() {
@@ -1238,15 +1236,15 @@ function checkSizes() {
     console.log("$(window):        %sx%s",
                 $(window).width(), $(window).height());
     
-    var idx, tl, panel;
+    var idx, tl, card;
     var taskLists = taskData.getTaskLists();
     
     for (idx in taskLists) {
         tl = taskLists[idx];
-        panel = document.getElementById("panel-"+tl.id);
-        if (!panel)
+        card = document.getElementById("card-"+tl.id);
+        if (!card)
             continue;
-        console.log(tl.title + ": " + panel.clientWidth + " x " + panel.clientHeight);
+        console.log(tl.title + ": " + card.clientWidth + " x " + card.clientHeight);
     }
 }
 
