@@ -1174,7 +1174,7 @@ function optimizeCardColumnLayout(tasksArea, cardInfo) {
     /* figure out the height expected - we're laying out for an 8.5" x 11" landscape */
     //pageHeight = Math.floor( tasksArea.clientWidth / 11 * 8.5 ) - 100;
     pageHeight = 950;
-    console.log("page shape(8.5x11land):   Height: %s   Width: %s", pageHeight, tasksArea.clientWidth);
+    //console.log("page shape(8.5x11land):   Height: %s   Width: %s", pageHeight, tasksArea.clientWidth);
 
     while (cardInfo.length > 0) {
 
@@ -1183,10 +1183,6 @@ function optimizeCardColumnLayout(tasksArea, cardInfo) {
         /* add up to the max number of columns */
         for (idx=0; idx < 3; idx++) {
             colPx = pageHeight;
-            //col = document.createElement('div');
-            //col.classList.add('col-md-4');
-            //cardColumn.appendChild(col);
-            //cols.push(col);
 
             /* fill it up */
             while (cardInfo.length > 0) {
@@ -1198,7 +1194,7 @@ function optimizeCardColumnLayout(tasksArea, cardInfo) {
                     break;
                 }
 
-		console.log("%24s %4d  %4d", nextCard.taskList.title, nextCard.height, colPx);
+		//console.log("%24s %4d  %4d", nextCard.taskList.title, nextCard.height, colPx);
                 cardColumn.appendChild(nextCard.card);
                 colPx -= nextCard.height;
                 nextCard = null;
@@ -1212,7 +1208,7 @@ function optimizeCardColumnLayout(tasksArea, cardInfo) {
     
     for (idx in cardInfo) {
         card = cardInfo[idx];
-	console.log("%24s %4d  Cannot fit card", card.taskList.title, card.height);
+	//console.log("%24s %4d  Cannot fit card", card.taskList.title, card.height);
     }
 
 }
