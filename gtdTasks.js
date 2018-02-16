@@ -1118,12 +1118,105 @@ function renderTasks() {
     }
     
     /* lay them out so the screen can identify their true size */
-    standardLayout(tasksArea, cardInfo);
-    checkSizes();
+    cardColumnLayout(tasksArea, cardInfo);
+    //standardLayout(tasksArea, cardInfo);
+    checkSizes(cardInfo);
     
     /* re-arrange the cards to be best fit */
-    optimizeLayout(tasksArea, cardInfo);
+    optimizeCardColumnLayout(tasksArea, cardInfo);
+    //optimizeLayout(tasksArea, cardInfo);
 }
+
+function cardColumnLayout(area, cardInfo) {
+    var ci, cardColumn;
+
+    console.log("cardColumnLayout()");
+
+    /* create the card-column div and add it to the area */
+    cardColumn = document.createElement('div');
+    cardColumn.classList.add('card-columns');
+    area.appendChild(cardColumn);
+
+    /* load it up */
+    for (ci in cardInfo) {
+	cardColumn.appendChild(cardInfo[ci].card);
+	console.log(cardInfo[ci].taskList.title)
+    }
+
+    return;
+}
+
+function optimizeCardColumnLayout(tasksArea, cardInfo) {
+    var idx, tl, card;
+    var nextCard = null;
+    var cardColumn, col, cols = [];
+
+    console.log("optimizeCardColumnLayout()");
+    
+    /* scrub it */
+    while (tasksArea.childElementCount > 0)
+        tasksArea.removeChild(tasksArea.firstChild);
+    
+    /* should be grabbing the Next-Tasks */
+    for (idx in cardInfo) {
+        if (cardInfo[idx].taskList.title == 'Next-Tasks') {
+            nextCard = cardInfo.splice(idx, 1)[0];
+            break;
+        }
+    }
+
+
+    /* setup the card-columns div */
+    cardColumn = document.createElement('div');
+    cardColumn.classList.add('card-columns');
+    tasksArea.appendChild(cardColumn);
+
+    /* figure out the height expected - we're laying out for an 8.5" x 11" landscape */
+    //pageHeight = Math.floor( tasksArea.clientWidth / 11 * 8.5 ) - 100;
+    pageHeight = 950;
+    console.log("page shape(8.5x11land):   Height: %s   Width: %s", pageHeight, tasksArea.clientWidth);
+
+    while (cardInfo.length > 0) {
+
+        /* concern only with height */
+
+        /* add up to the max number of columns */
+        for (idx=0; idx < 3; idx++) {
+            colPx = pageHeight;
+            //col = document.createElement('div');
+            //col.classList.add('col-md-4');
+            //cardColumn.appendChild(col);
+            //cols.push(col);
+
+            /* fill it up */
+            while (cardInfo.length > 0) {
+                if (!nextCard)
+                    nextCard = getBestTL(colPx, cardInfo);
+
+                if (!nextCard) {
+                    //console.log("filled this column")
+                    break;
+                }
+
+		console.log("%24s %4d  %4d", nextCard.taskList.title, nextCard.height, colPx);
+                cardColumn.appendChild(nextCard.card);
+                colPx -= nextCard.height;
+                nextCard = null;
+            }
+        }
+        
+        /* all done or nothing fits... */
+        if (colPx == pageHeight && nextCard == null)
+            break;
+    }
+    
+    for (idx in cardInfo) {
+        card = cardInfo[idx];
+	console.log("%24s %4d  Cannot fit card", card.taskList.title, card.height);
+    }
+
+}
+
 
 function standardLayout(area, cardInfo) {
     var row, col, pi;
@@ -1224,7 +1317,7 @@ function getBestTL(colPx, cards) {
     return cards.splice(bestIdx, 1)[0];
 }
 
-function checkSizes() {
+function checkSizes(cardInfo) {
     var tasksArea = document.getElementById('tasksArea');
     console.log("tasksArea.client: %sx%s", 
                 tasksArea.clientWidth, tasksArea.clientHeight);
@@ -1241,7 +1334,7 @@ function checkSizes() {
     
     for (idx in taskLists) {
         tl = taskLists[idx];
-        card = document.getElementById("card-"+tl.id);
+        card = document.getElementById(tl.id);
         if (!card)
             continue;
         console.log(tl.title + ": " + card.clientWidth + " x " + card.clientHeight);
