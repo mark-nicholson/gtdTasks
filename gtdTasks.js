@@ -1004,7 +1004,7 @@ function taskListCard(taskList) {
     cardInfo.card = pComp.card;
     
     tasks = taskData.tasksByTaskListID(taskList.id);
-    
+
     for (tIdx in tasks) {
         task = tasks[tIdx];
         
@@ -1448,13 +1448,76 @@ function handleJsonClick(event) {
  * Loading support
  */
 
+function loadTasksByParent(task_list, ptask, all_tasks) {
+    var idx;
+
+    /* add thisn parent task immediately */
+    taskData.addTask(ptask, task_list);
+
+    /* collect and organize the children */
+    var child_tasks = [];
+
+    /* locate this parent tasks' children */
+    for (idx in all_tasks) {
+	task = all_tasks[idx];
+
+	/* ignore the other parent tasks */
+	if (! task.hasOwnProperty('parent'))
+	    continue;
+
+	/* ignore tasks which are not for this parent */
+	if (task.parent != ptask.id)
+	    continue;
+
+	/* add it now */
+	child_tasks.push(task);
+    }
+
+    /* get the children inline ... */
+    child_tasks.sort((a,b) => (a.position > b.position) ? 1 : -1);
+
+    /* add them in their respective order */
+    for (idx in child_tasks) {
+	task = child_tasks[idx];
+	console.log("    " + idx + ": " + task.title, task.position);
+
+	/* recurse to support any depth */
+	loadTasksByParent(task_list, task, all_tasks);
+    }
+}
+
+
 function loadTasksCache(response) {
     tasks = response.result.items;
+    var idx;
+    var task;
 
-    /* add an index so we can lookup a taskList from a task.id */
-    for (var ti in tasks)
-        taskData.addTask(tasks[ti], this);
-    
+    /* filter the list to find the "parent" entries */
+    var p_idx = 0;
+    var par_tasks = [];
+    for (idx in tasks) {
+	task = tasks[idx];
+	if (task.hasOwnProperty('parent'))
+	    continue;
+
+	/* a parent task */
+	par_tasks.push(task);
+	console.log(p_idx, task.title, task.position);
+	p_idx = p_idx + 1;
+    }
+
+    /* organize them into the expected order */
+    par_tasks.sort((a,b) => (a.position > b.position) ? 1 : -1);
+
+    /* load the parent, then its children */
+    for (par_idx in par_tasks) {
+	var ptask = par_tasks[par_idx];
+	console.log("Sorted: " + par_idx + ": " + par_tasks[par_idx].title, par_tasks[par_idx].position);
+
+	/* load this parent task and its children */
+	loadTasksByParent(this, ptask, tasks);
+    }
+
     /* record that this list is loaded */
     taskData._lists_loaded += 1;
 
