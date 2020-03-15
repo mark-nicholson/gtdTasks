@@ -191,3 +191,8 @@
     display: table-cell !important;
   }
 }
+
+/* ugly hack for landscape printing */
+@page {
+    size: auto;
+}
