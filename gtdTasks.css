@@ -68,13 +68,13 @@ body {
 
 .gtd-task-label {
     display: inline-block;
-    width: 275px;
+    width: 80%;
 }
 .gtd-task-label-0 {}
-.gtd-task-label-1 { width: 265px; }
-.gtd-task-label-2 { width: 255px; }
-.gtd-task-label-3 { width: 245px; }
-.gtd-task-label-4 { width: 235px; }
+.gtd-task-label-1 { width: 75%; }
+.gtd-task-label-2 { width: 70%; }
+.gtd-task-label-3 { width: 65%; }
+.gtd-task-label-4 { width: 60%; }
 
 .gtd-task-title {}
 .gtd-item-notes {
