@@ -461,8 +461,7 @@ function calcIndentLevel(task) {
 function indentActiveItems(do_indent) {
     var area = document.getElementById('tasksArea');
     var items = $(area).find('li.active');
-    //var items = document.getElementsByClassName('li.active');
-    
+
     console.log("got: " + do_indent);
     
     /* skip errant calls */
@@ -494,7 +493,6 @@ function indentActiveItems(do_indent) {
 	'previous': null         /* default: top of list */
     };
 
-
     if (!do_indent) {
 
 	/* OUTDENT */
@@ -505,6 +503,7 @@ function indentActiveItems(do_indent) {
 		"<strong>Notice</strong> - Task already at top-level.",
 		'alert-info'
 	    );
+	    taskItem.classList.toggle('active');
 	    return;
 	}
 
@@ -547,6 +546,7 @@ function indentActiveItems(do_indent) {
 		"<strong>Warning!</strong> - Cannot outdent any further.",
 		'alert-warning'
 	    );
+	    taskItem.classList.toggle('active');
 	    return;
 	}
 
@@ -571,6 +571,9 @@ function indentActiveItems(do_indent) {
 	}
 	    
     }
+
+    /* turn of the active marker */
+    taskItem.classList.toggle('active');
 
     /* run the update */
     gapi.client.tasks.tasks.move(params).then(
@@ -1049,23 +1052,7 @@ function taskListCard(taskList) {
         pItem.id = task.id;
         pItem.onclick = function(e) {
             e.preventDefault();
-            //console.log("Got a list-item click");
-            //console.log(e);
-
-	    var multiSelect = false;
-
-	    /*
-	     * The multi-select seems to have some odd behaviours
-	     */
-	    if (!multiSelect) {
-		/* this is for single select mode */
-		$(this).parent().find('li').removeClass('active');
-		this.classList.add('active');
-	    }
-	    else {
-		/* use this for multi-select */
-		this.classList.toggle('active');
-	    }
+	    this.classList.toggle('active');
         };
 
         /* create the display entry for this task */
