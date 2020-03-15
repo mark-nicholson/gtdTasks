@@ -417,7 +417,6 @@ function createCard(title, footer, id) {
     if (title != "Next-Tasks") {
         pList.classList.add('drag-list-group');
         $(pList).sortable({
-            handle: ".fa-reorder",
             update: uiTaskDrag,
             connectWith: [ '.drag-list-group' ]
         });
@@ -679,7 +678,8 @@ function dateTime_to_taskTime(dt, tt) {
     return gTime + ".000Z";
 }
 
-function uiTaskEditModal() {
+function uiTaskEditModal(event) {
+    event.stopPropagation();
     var listItem = $(this).closest('li');
     var task = taskData.taskByID(listItem.attr('id'));
     var modal = $("#gtdTaskEditModal");
@@ -869,9 +869,12 @@ function uiTaskDrag(event, ui) {
     
 }
 
-function uiTaskNext(e) {
+function uiTaskNext(event) {
     var listItem = $(this).closest('li');
     var task = taskData.taskByID(listItem.attr('id'));
+
+    /* only do this */
+    event.stopPropagation();
 
     /* TO-DO: update data to reflect that this is a 'next-task' */
     
@@ -880,7 +883,10 @@ function uiTaskNext(e) {
     this.classList.toggle('fa-star');
 }
 
-function uiTaskCompleted(e) {
+function uiTaskCompleted(event) {
+    /* only do this */
+    event.stopPropagation();
+
     var boxIcon = $(this);
     var listItem = boxIcon.closest('li');
     var task = taskData.taskByID(listItem.attr('id'));
@@ -945,17 +951,12 @@ function divTaskEntry(pItem, task) {
     }
     //console.log("Task: " + task.title + " parentage: " + pd);
 
-    /* setup icons */
-    var drag = document.createElement('i');
-    drag.classList.add('fa', 'fa-fw', 'fa-reorder', 'd-print-none', 'pull-left');
-    
     var next = document.createElement('i');
     next.classList.add('fa', 'fa-fw', 'fa-star-o', 'pull-left');
     next.onclick = uiTaskNext;
 
     var done = document.createElement('i');
     done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left', 'gtd-task-indent-'+pd);
-    //done.classList.add('fa', 'fa-fw', 'fa-square-o', 'pull-left'); //, 'gtd-task-indent-'+pd);
     done.onclick = uiTaskCompleted;
 
     var edit = document.createElement('i');
@@ -964,7 +965,6 @@ function divTaskEntry(pItem, task) {
     
     var info = document.createElement('div');
     info.classList.add('gtd-task-label', 'gtd-task-label-'+pd);
-    //info.classList.add('gtd-task-label'); //, 'gtd-task-label-'+pd);
     var hInfo = document.createElement('span');
     hInfo.classList.add('gtd-task-title');
     hInfo.innerHTML = task.title;
@@ -1002,7 +1002,6 @@ function divTaskEntry(pItem, task) {
     }
 
     /* attach them in the expected order */
-    pItem.appendChild(drag);
     pItem.appendChild(next);
     pItem.appendChild(done);
     pItem.appendChild(info);
