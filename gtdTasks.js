@@ -792,14 +792,21 @@ function gtdEditModalOk() {
 function uiTaskDrag(event, ui) {
     var dragItem = ui.item;
     var dragTask = taskData.taskByID(dragItem.attr('id'));
+    var nextItem = ui.item.next();
+    var nextTask = taskData.taskByID(nextItem.attr('id'));
+    var prevItem = ui.item.prev();
+    var prevTask = taskData.taskByID(prevItem.attr('id'));
     var startCard = $(this).closest('.card');
     var startTaskList = taskData.taskListByID(startCard.attr('id'));
     
     var targetCard = dragItem.closest('.card');
     var targetTaskList = taskData.taskListByID(targetCard.attr('id'));
 
-    //console.log("uiTaskDrag(" + dragTask.title + ") " + startTaskList.title+ " -> " + targetTaskList.title);
+    console.log("uiTaskDrag(" + dragTask.title + "/" + dragTask.id + ") " + startTaskList.title+ " -> " + targetTaskList.title);
     //console.log("ui.item.index(" + dragItem.index() + ")");
+    console.log("prev: ", prevItem, prevTask, prevTask? prevTask.title : "n/a");
+    console.log("next: ", nextItem, nextTask, nextTask? nextTask.title : "n/a");
+    console.log("THIS: ", this);
 
     var params = {
         'task': dragTask.id,
@@ -807,11 +814,31 @@ function uiTaskDrag(event, ui) {
     }
     
     /* locate the previous task */
-    if (dragItem.index() > 0) {
-        var tasks = taskData.tasksByTaskListID(targetTaskList.id);
-        var prevTask = tasks[dragItem.index()-1]
-        
+    if (prevTask) {
         params['previous'] = prevTask.id;
+    }
+
+    /* figure out the parentage */
+    if (nextTask && nextTask.hasOwnProperty('parent')) {
+	params['parent'] = nextTask.parent;
+	console.log("uiDragTask: assuming adding to a parental list");
+
+	if (prevTask && prevTask.hasOwnProperty('parent')) {
+	    if (prevTask.parent != nextTask.parent)
+		params['parent'] = prevTask.parent;
+	}
+	else {
+	    console.log("uiDragTask: inserting entry 0 on a parent list");
+	    /* remove 'previous' */
+	    delete params['previous'];
+	}
+    }
+    else if (prevTask && prevTask.hasOwnProperty('parent')) {
+	console.log("uiDragTask: appending to parental list");
+	params['parent'] = prevTask.parent;
+    }
+    else {
+	console.log("uiDragTask: adding top-level entry");
     }
 
     /* do it */
@@ -1479,7 +1506,7 @@ function loadTasksByParent(task_list, ptask, all_tasks) {
     /* add them in their respective order */
     for (idx in child_tasks) {
 	task = child_tasks[idx];
-	console.log("    " + idx + ": " + task.title, task.position);
+	//console.log("    " + idx + ": " + task.title, task.position);
 
 	/* recurse to support any depth */
 	loadTasksByParent(task_list, task, all_tasks);
@@ -1502,7 +1529,7 @@ function loadTasksCache(response) {
 
 	/* a parent task */
 	par_tasks.push(task);
-	console.log(p_idx, task.title, task.position);
+	//console.log(p_idx, task.title, task.position);
 	p_idx = p_idx + 1;
     }
 
@@ -1512,7 +1539,7 @@ function loadTasksCache(response) {
     /* load the parent, then its children */
     for (par_idx in par_tasks) {
 	var ptask = par_tasks[par_idx];
-	console.log("Sorted: " + par_idx + ": " + par_tasks[par_idx].title, par_tasks[par_idx].position);
+	//console.log("Sorted: " + par_idx + ": " + par_tasks[par_idx].title, par_tasks[par_idx].position);
 
 	/* load this parent task and its children */
 	loadTasksByParent(this, ptask, tasks);
